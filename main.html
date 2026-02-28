@@ -2677,7 +2677,9 @@ async function confirmMark() {
   const typeLabel = selectedMarkType ? selectedMarkType.label : '—';
   const typeKey   = selectedMarkType ? selectedMarkType.type  : '';
   const ts        = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
-  const sk        = formatSK42(pendingMarkLatLng.lat, pendingMarkLatLng.lng);
+  const lat       = pendingMarkLatLng.lat;
+  const lng       = pendingMarkLatLng.lng;
+  const sk        = formatSK42(lat, lng);
 
   // Сохраняем вложения до очистки
   const attachments = mfpFiles.slice();
@@ -2704,8 +2706,7 @@ async function confirmMark() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        lat: pendingMarkLatLng.lat,
-        lng: pendingMarkLatLng.lng,
+        lat, lng,
         name, type: typeKey, color, priority: prio,
         info: info === '—' ? '' : info,
         coords_x: sk.X, coords_y: sk.Y, zone: sk.zone,
@@ -2717,7 +2718,7 @@ async function confirmMark() {
     }
   } catch (_) {}
 
-  addMarkerToMap(markerId, pendingMarkLatLng.lat, pendingMarkLatLng.lng,
+  addMarkerToMap(markerId, lat, lng,
     name, color, typeLabel, prio, info, sk, ts, attachUrls).openPopup();
 }
 
