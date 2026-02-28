@@ -1,0 +1,3545 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PULSE — Боевой Хаб</title>
+
+<!-- Leaflet CSS (до любых стилей, чтобы не было FOUC) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ── reset & base ──────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13.5px;
+  background: #020617;
+  color: #cbd5e1;
+}
+
+/* ── layout shell ──────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  padding: 10px;
+  gap: 8px;
+}
+
+/* ── header ──────────────────────────────────────  */
+#header {
+  flex: 0 0 auto;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  background: rgba(2,6,23,0.85);
+  border: 1px solid rgba(249,115,22,0.3);
+  backdrop-filter: blur(8px);
+}
+
+/* ── body row ───────────────────────────────────  */
+#body {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  gap: 8px;
+}
+
+/* ── map section ────────────────────────────────  */
+#map-section {
+  flex: 0 0 70%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(249,115,22,0.3);
+  background: rgba(2,6,23,0.7);
+  overflow: hidden;
+}
+#map-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px;
+  border-bottom: 1px solid #1e293b;
+  background: rgba(15,23,42,0.7);
+}
+#map-container {
+  flex: 1 1 0;
+  min-height: 0;
+  position: relative;
+}
+/* Leaflet map fills container */
+#leaflet-map {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+/* overlay markers sit above leaflet */
+#map-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 400; /* above leaflet tiles (z≤399) but below controls */
+  pointer-events: none;
+}
+#map-overlay > * { pointer-events: auto; }
+
+/* ── right aside ─────────────────────────────────  */
+#aside {
+  flex: 0 0 calc(30% - 8px);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── cyber-border helper ─────────────────────────  */
+.cb {
+  border: 1px solid rgba(249,115,22,0.3);
+  background: rgba(2,6,23,0.8);
+  backdrop-filter: blur(6px);
+  position: relative;
+}
+.cb::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 5px; height: 5px;
+  border-bottom: 1px solid #f97316;
+  border-right: 1px solid #f97316;
+}
+
+/* ── scanlines ───────────────────────────────────  */
+#scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px, transparent 3px,
+    rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 4px
+  );
+}
+
+/* ── nav ─────────────────────────────────────────  */
+nav { display: flex; gap: 2px; }
+.nav-item {
+  position: relative;
+  padding: 4px 11px;
+  font-size: 13px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #64748b;
+  cursor: pointer;
+  transition: color .15s;
+  white-space: nowrap;
+}
+.nav-item:hover, .nav-item.active { color: #f97316; }
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 11px; right: 11px;
+  height: 1px; background: #f97316;
+}
+.nav-item:hover .nav-dropdown { display: block; }
+.nav-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%; left: 0;
+  min-width: 150px;
+  background: rgba(2,6,23,0.97);
+  border: 1px solid rgba(249,115,22,0.3);
+  z-index: 1000;
+}
+.nav-dd-item {
+  display: block;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.nav-dd-item:hover { color: #f97316; background: rgba(249,115,22,0.07); }
+
+/* ── toolbar btns ────────────────────────────────  */
+.tb-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-family: inherit;
+  letter-spacing: 0.06em;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+  white-space: nowrap;
+}
+.tb-btn:hover { border-color: rgba(249,115,22,.5); color: #f97316; background: rgba(249,115,22,.07); }
+.tb-btn.active { border-color: rgba(249,115,22,.5); color: #f97316; background: rgba(249,115,22,.1); }
+
+/* ── freq table ──────────────────────────────────  */
+#freq-block { flex: 0 0 auto; overflow: hidden; }
+.freq-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid #1e293b;
+  background: rgba(15,23,42,0.6);
+}
+.freq-table-wrap { padding: 5px 6px 4px; overflow: hidden; }
+.freq-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  table-layout: fixed;
+}
+.freq-table td {
+  padding: 3px 1px;
+  text-align: center;
+  cursor: pointer;
+  transition: background .12s;
+  white-space: nowrap;
+  overflow: hidden;
+  line-height: 1.3;
+}
+.freq-table td:hover { background: rgba(249,115,22,.12); }
+.f-free { color: #10b981; }
+.f-busy { color: #f59e0b; }
+.f-full { color: #ef4444; }
+.f-busy-bg { background: rgba(245,158,11,.07); }
+.f-full-bg  { background: rgba(239, 68, 68,.07); }
+.freq-hint {
+  padding: 4px 10px;
+  font-size: 10px;
+  color: #334155;
+  letter-spacing: 0.05em;
+  border-top: 1px solid #1e293b;
+  background: rgba(15,23,42,.4);
+}
+
+/* ── chat block ──────────────────────────────────  */
+#chat-block {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chat-head {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 10px;
+  border-bottom: 1px solid #1e293b;
+  background: rgba(15,23,42,0.6);
+}
+#killfeed {
+  flex: 0 0 auto;
+  max-height: 78px;
+  overflow-y: auto;
+  padding: 4px 10px;
+  border-bottom: 1px solid rgba(30,41,59,.6);
+  background: rgba(2,6,23,0.5);
+}
+.kf-label { font-size: 10.5px; color: #ef4444; letter-spacing: 0.08em; margin-bottom: 2px; }
+.kf-row { font-size: 11.5px; margin-bottom: 2px; }
+#chat-messages {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chat-row { font-size: 12.5px; }
+.chat-ts { color: #334155; }
+.chat-user-self { color: #f97316; }
+.chat-user-cmd  { color: #60a5fa; }
+.chat-user-other{ color: #34d399; }
+.chat-text { color: #94a3b8; }
+#chat-input-row {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-top: 1px solid #1e293b;
+  background: rgba(15,23,42,0.6);
+}
+#chat-input {
+  flex: 1;
+  background: transparent;
+  border: 1px solid #334155;
+  color: #cbd5e1;
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 4px 8px;
+  outline: none;
+  transition: border-color .15s;
+}
+#chat-input:focus { border-color: rgba(249,115,22,.5); }
+#chat-send {
+  border: 1px solid rgba(249,115,22,.5);
+  background: rgba(249,115,22,.1);
+  color: #f97316;
+  cursor: pointer;
+  padding: 4px 9px;
+  font-family: inherit;
+  font-size: 12.5px;
+  transition: background .15s;
+}
+#chat-send:hover { background: rgba(249,115,22,.2); }
+
+/* ── target card popup ───────────────────────────  */
+#target-card {
+  position: absolute;
+  width: 210px;
+  z-index: 800;
+  padding: 11px;
+  top: 60px; left: 20px;
+  display: none;
+  border: 1px solid rgba(249,115,22,.35);
+  background: rgba(2,6,23,0.96);
+  backdrop-filter: blur(6px);
+}
+.tc-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  margin-bottom: 4px;
+}
+.tc-label { color: #64748b; }
+.tc-val   { color: #cbd5e1; }
+.tc-btn {
+  flex: 1;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  padding: 3px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.tc-btn-red  { border-color: rgba(239,68,68,.4); color: #ef4444; background: rgba(239,68,68,.07); }
+.tc-btn:hover { background: rgba(249,115,22,.1); border-color: rgba(249,115,22,.4); color: #f97316; }
+
+/* ── REB zone on map ─────────────────────────────  */
+.reb-zone {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px dashed rgba(139,92,246,.55);
+  background: rgba(139,92,246,.06);
+  pointer-events: none;
+  transform: translate(-50%,-50%);
+}
+.reb-label {
+  position: absolute;
+  font-size: 8px;
+  color: rgba(167,139,250,.8);
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+
+/* ── target markers ──────────────────────────────  */
+.t-marker {
+  position: absolute;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  transform: translate(-50%,-50%);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.t-marker::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  opacity: .45;
+}
+.tm-red  { background:#ef4444; color:#ef4444; box-shadow:0 0 7px #ef4444; }
+.tm-amb  { background:#f59e0b; color:#f59e0b; box-shadow:0 0 7px #f59e0b; }
+.tm-vio  { background:#8b5cf6; color:#8b5cf6; box-shadow:0 0 7px #8b5cf6; }
+.tm-cya  { background:#06b6d4; color:#06b6d4; box-shadow:0 0 7px #06b6d4; }
+
+/* ── misc text utils ─────────────────────────────  */
+.label-orange { color: #f97316; font-size: 12.5px; letter-spacing: 0.07em; }
+.label-dim    { color: #64748b; font-size: 11px; }
+.dot-live { width:6px; height:6px; border-radius:50%; background:#10b981; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── scrollbar ───────────────────────────────────  */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #f97316; border-radius: 2px; }
+
+/* ── leaflet overrides ───────────────────────────  */
+.leaflet-control-attribution { font-size: 7px !important; opacity: .5; }
+.leaflet-control-zoom a {
+  background: rgba(2,6,23,0.85) !important;
+  color: #f97316 !important;
+  border-color: rgba(249,115,22,.3) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+.leaflet-control-zoom a:hover { background: rgba(249,115,22,.15) !important; }
+</style>
+</head>
+
+<body>
+<div id="scanlines"></div>
+
+<div id="app">
+
+  <!-- ══════════ HEADER ══════════ -->
+  <header id="header" class="cb">
+    <!-- Logo -->
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(249,115,22,.4);background:rgba(249,115,22,.08);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+          <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+        </svg>
+      </div>
+      <div>
+        <span style="font-size:14px;font-weight:700;color:#fff;letter-spacing:.05em;">PUL<span style="color:#f97316;">SE</span></span>
+        <span style="font-size:8px;color:#334155;margin-left:8px;letter-spacing:.1em;">БОЕВОЙ ХАБ</span>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav>
+      <div class="nav-item active">Боевой хаб</div>
+      <div class="nav-item">Трансляции</div>
+      <div class="nav-item" onclick="openSettings()">Настройки</div>
+      <div class="nav-item" onclick="openNews()">Новости</div>
+      <div class="nav-item" onclick="openSupport()">Техподдержка</div>
+      <div class="nav-item" onclick="openLeaderboard()">Лидерборд</div>
+    </nav>
+
+    <!-- Status + clock -->
+    <div style="display:flex;align-items:center;gap:14px;font-size:9px;">
+      <div style="display:flex;align-items:center;gap:5px;color:#ef4444;">
+        <span style="animation:pulse 2s infinite;display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef4444;"></span>
+        <span style="letter-spacing:.09em;">ОНЛАЙН</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;color:#475569;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="clock">00:00:00 UTC</span>
+      </div>
+      <button style="width:27px;height:27px;display:flex;align-items:center;justify-content:center;border:1px solid #1e293b;background:rgba(15,23,42,.5);color:#475569;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='rgba(249,115,22,.4)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#1e293b';this.style.color='#475569'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════ BODY ══════════ -->
+  <div id="body">
+
+    <!-- ── MAP SECTION (70%) ── -->
+    <section id="map-section" class="cb">
+
+      <!-- Toolbar -->
+      <div id="map-toolbar">
+        <div style="display:flex;align-items:center;gap:6px;font-size:9.5px;color:#f97316;letter-spacing:.07em;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          КАРТА СЕКТОРА
+          <span style="color:#334155;margin-left:4px;">СК-42 X/Y</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="tb-btn" id="btn-ruler" onclick="toggleRuler()">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/></svg>
+            ЛИНЕЙКА
+          </button>
+          <button class="tb-btn active" id="btn-mark" onclick="toggleMarkMode()">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            МЕТКА
+          </button>
+        </div>
+      </div>
+
+      <!-- Map container -->
+      <div id="map-container">
+        <div id="leaflet-map"></div>
+
+        <!-- legend only — markers/popups handled by Leaflet -->
+        <div id="map-overlay" style="pointer-events:none;">
+          <!-- Legend -->
+          <div style="position:absolute;bottom:10px;left:10px;background:rgba(2,6,23,.88);border:1px solid rgba(249,115,22,.2);padding:8px 10px;font-size:11.5px;">
+            <div style="color:#475569;letter-spacing:.06em;margin-bottom:5px;">ТИПЫ МЕТОК</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;flex-shrink:0;"></span><span style="color:#475569;">Позиция / Техника</span></div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;flex-shrink:0;"></span><span style="color:#475569;">Оборудование / Крыло</span></div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#06b6d4;display:inline-block;flex-shrink:0;"></span><span style="color:#475569;">Агро-дрон / Доставка</span></div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;display:inline-block;flex-shrink:0;"></span><span style="color:#475569;">РЭБ</span></div>
+            <div style="display:flex;align-items:center;gap:6px;"><span style="width:13px;height:13px;border-radius:50%;border:1px dashed rgba(139,92,246,.55);background:rgba(139,92,246,.08);display:inline-block;flex-shrink:0;"></span><span style="color:#475569;">Зона союзн. РЭБ</span></div>
+          </div>
+          <!-- Ruler info label -->
+          <div id="ruler-label" style="display:none;position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(2,6,23,.92);border:1px solid rgba(249,115,22,.4);padding:4px 12px;font-size:12px;color:#f97316;letter-spacing:.07em;white-space:nowrap;"></div>
+        </div><!-- /map-overlay -->
+      </div><!-- /map-container -->
+    </section>
+
+    <!-- ── RIGHT ASIDE (30%) ── -->
+    <aside id="aside">
+
+      <!-- FREQ TABLE -->
+      <div id="freq-block" class="cb">
+        <div class="freq-head">
+          <div style="display:flex;align-items:center;gap:6px;" class="label-orange">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+            ТАБЛИЦА ЧАСТОТ
+          </div>
+          <div style="display:flex;gap:8px;font-size:11px;">
+            <span class="f-free">● своб</span>
+            <span class="f-busy">● занят</span>
+            <span class="f-full">● макс</span>
+          </div>
+        </div>
+        <div class="freq-table-wrap">
+          <table class="freq-table">
+            <tbody id="freq-tbody"></tbody>
+          </table>
+        </div>
+        <div class="freq-hint">ЛКМ — занять &nbsp;·&nbsp; ПКМ — забронировать &nbsp;·&nbsp; 2× — освободить</div>
+      </div>
+
+      <!-- CHAT + KILLFEED -->
+      <div id="chat-block" class="cb">
+        <div class="chat-head">
+          <div style="display:flex;align-items:center;gap:6px;" class="label-orange">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            БОЕВОЙ ЧАТ
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span class="dot-live"></span>
+            <span style="font-size:9px;color:#10b981;letter-spacing:.06em;">LIVE</span>
+          </div>
+        </div>
+
+        <!-- Kill feed -->
+        <div id="killfeed">
+          <div class="kf-label">KILL FEED</div>
+          <div class="kf-row">
+            <span style="color:#334155;">12:47</span>
+            <span style="color:#f97316;margin-left:4px;">[Сапёр]</span>
+            <span style="color:#64748b;margin-left:3px;">→</span>
+            <span style="color:#ef4444;margin-left:4px;">Техника</span>
+            <span style="color:#334155;margin-left:4px;">· X:6412540 Y:2306120</span>
+          </div>
+          <div class="kf-row">
+            <span style="color:#334155;">12:39</span>
+            <span style="color:#f97316;margin-left:4px;">[Коршун]</span>
+            <span style="color:#64748b;margin-left:3px;">→</span>
+            <span style="color:#ef4444;margin-left:4px;">Позиция</span>
+            <span style="color:#334155;margin-left:4px;">· X:6412710 Y:2305930</span>
+          </div>
+          <div class="kf-row">
+            <span style="color:#334155;">12:24</span>
+            <span style="color:#f97316;margin-left:4px;">[Рысь]</span>
+            <span style="color:#64748b;margin-left:3px;">→</span>
+            <span style="color:#ef4444;margin-left:4px;">РЭБ</span>
+            <span style="color:#334155;margin-left:4px;">· X:6412880 Y:2306340</span>
+          </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="chat-messages">
+          <div class="chat-row"><span class="chat-ts">12:41</span> <span class="chat-user-self">Коршун:</span> <span class="chat-text">Цель подтверждена, квадрат B4</span></div>
+          <div class="chat-row"><span class="chat-ts">12:43</span> <span class="chat-user-cmd">Командир:</span> <span class="chat-text">Работаем по сетке R, канал 3</span></div>
+          <div class="chat-row"><span class="chat-ts">12:44</span> <span class="chat-user-self">Сапёр:</span> <span class="chat-text">Занял R3, выдвигаюсь</span></div>
+          <div class="chat-row"><span class="chat-ts">12:45</span> <span class="chat-user-other">Рысь:</span> <span class="chat-text">РЭБ активен, радиус 110м</span></div>
+          <div class="chat-row"><span class="chat-ts">12:48</span> <span class="chat-user-cmd">Командир:</span> <span class="chat-text">Всем внимание, техника в движении на северо-запад</span></div>
+          <div class="chat-row"><span class="chat-ts">12:51</span> <span class="chat-user-self">Коршун:</span> <span class="chat-text">Вижу, беру на прицел</span></div>
+          <div id="chat-end"></div>
+        </div>
+
+        <!-- Input -->
+        <div id="chat-input-row">
+          <input id="chat-input" type="text" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMsg()">
+          <button id="chat-send" onclick="sendMsg()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+
+    </aside>
+  </div><!-- /body -->
+<!-- ══════════ SETTINGS OVERLAY ══════════ -->
+<div id="settings-overlay" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(2,6,23,0.92);backdrop-filter:blur(6px);overflow-y:auto;">
+  <div style="max-width:680px;margin:40px auto;padding:0 16px 60px;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:3px;height:22px;background:#f97316;"></div>
+        <span style="font-size:15px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Настройки</span>
+      </div>
+      <button onclick="closeSettings()" style="background:none;border:1px solid #334155;color:#64748b;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.borderColor='rgba(249,115,22,.5)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#334155';this.style.color='#64748b'">✕ Закрыть</button>
+    </div>
+
+    <!-- Section: Уведомления -->
+    <div style="border:1px solid rgba(249,115,22,0.25);background:rgba(15,23,42,0.6);margin-bottom:12px;">
+      <!-- Section header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid #1e293b;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span style="font-size:13px;font-weight:600;color:#f97316;letter-spacing:.08em;text-transform:uppercase;">Уведомления</span>
+        </div>
+        <!-- Master toggle -->
+        <label class="stg-toggle" title="Включить / выключить все уведомления">
+          <input type="checkbox" id="notif-master" checked onchange="masterToggle(this)">
+          <span class="stg-slider"></span>
+        </label>
+      </div>
+
+      <!-- Rows -->
+      <div id="notif-rows">
+        <div class="stg-row">
+          <span class="stg-label">Уведомлять о появлении вражеской <strong>техники</strong></span>
+          <label class="stg-toggle"><input type="checkbox" class="notif-child" checked><span class="stg-slider"></span></label>
+        </div>
+        <div class="stg-row">
+          <span class="stg-label">Уведомлять о появлении вражеского <strong>агро-дрона</strong></span>
+          <label class="stg-toggle"><input type="checkbox" class="notif-child" checked><span class="stg-slider"></span></label>
+        </div>
+        <div class="stg-row">
+          <span class="stg-label">Уведомлять о появлении вражеского <strong>крыла</strong></span>
+          <label class="stg-toggle"><input type="checkbox" class="notif-child" checked><span class="stg-slider"></span></label>
+        </div>
+        <div class="stg-row">
+          <span class="stg-label">Уведомлять о появлении вражеской <strong>позиции</strong></span>
+          <label class="stg-toggle"><input type="checkbox" class="notif-child" checked><span class="stg-slider"></span></label>
+        </div>
+        <div class="stg-row">
+          <span class="stg-label">Уведомлять о появлении вражеского <strong>оборудования</strong></span>
+          <label class="stg-toggle"><input type="checkbox" class="notif-child"><span class="stg-slider"></span></label>
+        </div>
+        <div class="stg-row">
+          <span class="stg-label">Уведомлять о работе <strong>союзного РЭБ</strong></span>
+          <label class="stg-toggle"><input type="checkbox" class="notif-child" checked><span class="stg-slider"></span></label>
+        </div>
+        <div class="stg-row" style="border-bottom:none;">
+          <span class="stg-label">Показывать нахождение <strong>вражеских дронов</strong></span>
+          <label class="stg-toggle"><input type="checkbox" class="notif-child" checked><span class="stg-slider"></span></label>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ NEWS OVERLAY ══════════ -->
+<div id="news-overlay" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(2,6,23,0.92);backdrop-filter:blur(6px);overflow-y:auto;">
+  <div style="max-width:900px;margin:40px auto;padding:0 16px 60px;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:3px;height:22px;background:#f97316;"></div>
+        <span style="font-size:15px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Новости</span>
+        <span style="font-size:9px;color:#334155;letter-spacing:.1em;margin-left:4px;">// ЛЕНТА СОБЫТИЙ</span>
+      </div>
+      <button onclick="closeNews()" style="background:none;border:1px solid #334155;color:#64748b;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.borderColor='rgba(249,115,22,.5)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#334155';this.style.color='#64748b'">✕ Закрыть</button>
+    </div>
+
+    <!-- News list -->
+    <div id="news-list"></div>
+
+  </div>
+</div>
+
+<!-- ══════════ LEADERBOARD OVERLAY ══════════ -->
+<div id="lb-overlay" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(2,6,23,0.93);backdrop-filter:blur(6px);overflow-y:auto;">
+  <div style="max-width:1060px;margin:40px auto;padding:0 16px 60px;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:3px;height:22px;background:#f97316;"></div>
+        <span style="font-size:15px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Лидерборд</span>
+        <span style="font-size:9px;color:#334155;letter-spacing:.1em;margin-left:4px;">// ТОП-20 ПИЛОТОВ</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span class="dot-live"></span>
+          <span style="font-size:9px;color:#10b981;letter-spacing:.06em;">LIVE</span>
+        </div>
+        <span style="font-size:9px;color:#334155;letter-spacing:.05em;">Обновлено: <span id="lb-update-time"></span></span>
+        <button onclick="closeLeaderboard()" style="background:none;border:1px solid #334155;color:#64748b;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.borderColor='rgba(249,115,22,.5)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#334155';this.style.color='#64748b'">✕ Закрыть</button>
+      </div>
+    </div>
+
+    <!-- Top-3 podium -->
+    <div id="lb-podium" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;"></div>
+
+    <!-- Controls row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+
+      <!-- Period filter -->
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:10px;color:#475569;letter-spacing:.07em;text-transform:uppercase;">Период:</span>
+        <div style="display:flex;gap:4px;">
+          <button class="lb-period-btn active" data-period="week"  onclick="setLbPeriod('week',this)">НЕДЕЛЯ</button>
+          <button class="lb-period-btn"        data-period="month" onclick="setLbPeriod('month',this)">МЕСЯЦ</button>
+          <button class="lb-period-btn"        data-period="all"   onclick="setLbPeriod('all',this)">ВСЁ ВРЕМЯ</button>
+        </div>
+      </div>
+
+      <!-- Sort + search -->
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:10px;color:#475569;letter-spacing:.07em;text-transform:uppercase;">Сорт.:</span>
+        <select id="lb-sort" class="lb-sort-sel" onchange="renderLbTable()">
+          <option value="score">По очкам</option>
+          <option value="total">По целям</option>
+          <option value="eff">По эффективности</option>
+          <option value="tech">Техника</option>
+          <option value="infantry">Пехота</option>
+          <option value="agro">Агро/крыло</option>
+          <option value="delivery">Доставка</option>
+          <option value="queue">Нарушения</option>
+        </select>
+        <input id="lb-search" class="lb-search-inp" type="text" placeholder="Поиск позывного…" oninput="renderLbTable()">
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="lb-table-wrap">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th class="lb-th-rank">#</th>
+            <th class="lb-th-left">Позывной</th>
+            <th class="lb-th-left">Часть</th>
+            <th class="lb-th-num lb-sort-col" onclick="setSortAndRender('score')">Очки <span class="lb-sort-arr">▼</span></th>
+            <th class="lb-th-num" onclick="setSortAndRender('total')">Цели</th>
+            <th class="lb-th-num" onclick="setSortAndRender('tech')" title="Техника (танк/бтр/арт/рсзо) ×5 очков">
+              <span class="lb-head-icon" style="color:#ef4444;" title="Техника">&#9651;</span>Техника
+            </th>
+            <th class="lb-th-num" onclick="setSortAndRender('infantry')" title="Пехота ×3 очка">
+              <span class="lb-head-icon" style="color:#84cc16;" title="Пехота">&#9632;</span>Пехота
+            </th>
+            <th class="lb-th-num" onclick="setSortAndRender('agro')" title="Агро-дрон/крыло ×2.5 очка">
+              <span class="lb-head-icon lb-agro-icon" title="Агро/крыло">&#10022;</span>Агро/крыло
+            </th>
+            <th class="lb-th-num" onclick="setSortAndRender('delivery')" title="Доставка провизии ×1 очко">
+              <span class="lb-head-icon" style="color:#38bdf8;" title="Доставка">&#9650;</span>Доставка
+            </th>
+            <th class="lb-th-num" onclick="setSortAndRender('queue')" title="Занятие канала без очереди ×-5 очков">
+              <span style="color:#ef4444;font-size:10px;">&#9888;</span>Нарушения
+            </th>
+            <th class="lb-th-num" onclick="setSortAndRender('eff')">Эффект. %</th>
+            <th class="lb-th-num">Вылеты</th>
+            <th class="lb-th-trend">&#916;</th>
+          </tr>
+        </thead>
+        <tbody id="lb-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Footer legend -->
+    <div style="display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap;">
+      <span style="font-size:10px;color:#334155;letter-spacing:.05em;">ОЧКИ:</span>
+      <span style="font-size:10px;color:#ef4444;">▲ Техника (танк/бтр/арт/рсзо) ×5</span>
+      <span style="font-size:10px;color:#84cc16;">■ Пехота ×3</span>
+      <span style="font-size:10px;color:#8b5cf6;">◆ Связь ×2</span>
+      <span style="font-size:10px;color:#06b6d4;">✦ Агро/крыло ×2.5</span>
+      <span style="font-size:10px;color:#38bdf8;">▲ Доставка ×1</span>
+      <span style="font-size:10px;color:#94a3b8;">Позиция: ФПВ ×1 / крыло ×2.5</span>
+      <span style="font-size:10px;color:#ef4444;">⚠ Канал без очереди −5</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ SUPPORT OVERLAY ══════════ -->
+<div id="support-overlay" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(2,6,23,0.93);backdrop-filter:blur(6px);overflow-y:auto;">
+  <div style="max-width:820px;margin:40px auto;padding:0 16px 60px;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:3px;height:22px;background:#ef4444;"></div>
+        <span style="font-size:15px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Техподдержка</span>
+        <span style="font-size:9px;color:#334155;letter-spacing:.1em;margin-left:4px;">// БАГ-РЕПОРТ &amp; СВЯЗЬ</span>
+      </div>
+      <button onclick="closeSupport()" style="background:none;border:1px solid #334155;color:#64748b;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.borderColor='rgba(249,115,22,.5)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#334155';this.style.color='#64748b'">✕ Закрыть</button>
+    </div>
+
+    <!-- Bug report form -->
+    <div class="sup-block" style="margin-bottom:12px;">
+      <div class="sup-block-head">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        ФОРМА БАГ-РЕПОРТА
+        <span style="margin-left:auto;font-size:9px;color:#334155;letter-spacing:.06em;">* — обязательные поля</span>
+      </div>
+
+      <div style="padding:16px 18px 20px;display:flex;flex-direction:column;gap:14px;">
+
+        <!-- Row 1: category + priority -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="sup-field">
+            <label class="sup-label">Категория *</label>
+            <select id="bug-category" class="sup-select">
+              <option value="">— выберите —</option>
+              <option value="map">Карта / маркеры</option>
+              <option value="freq">Таблица частот</option>
+              <option value="chat">Боевой чат</option>
+              <option value="ruler">Линейка / инструменты</option>
+              <option value="auth">Авторизация / доступ</option>
+              <option value="perf">Производительность</option>
+              <option value="ui">Интерфейс / отображение</option>
+              <option value="queue">Занятие канала без очереди</option>
+              <option value="other">Другое</option>
+            </select>
+          </div>
+          <div class="sup-field">
+            <label class="sup-label">Приоритет *</label>
+            <div style="display:flex;gap:6px;margin-top:4px;">
+              <label class="sup-prio-label" data-prio="low">
+                <input type="radio" name="bug-prio" value="low"> <span>НИЗКИЙ</span>
+              </label>
+              <label class="sup-prio-label" data-prio="med">
+                <input type="radio" name="bug-prio" value="med" checked> <span>СРЕДНИЙ</span>
+              </label>
+              <label class="sup-prio-label" data-prio="high">
+                <input type="radio" name="bug-prio" value="high"> <span>ВЫСОКИЙ</span>
+              </label>
+              <label class="sup-prio-label" data-prio="crit">
+                <input type="radio" name="bug-prio" value="crit"> <span>КРИТ</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: title -->
+        <div class="sup-field">
+          <label class="sup-label">Заголовок проблемы *</label>
+          <input id="bug-title" class="sup-input" type="text" placeholder="Кратко опишите проблему (не более 80 символов)" maxlength="80">
+          <span id="bug-title-count" style="font-size:10px;color:#334155;margin-top:3px;align-self:flex-end;">0 / 80</span>
+        </div>
+
+        <!-- Row 3: description -->
+        <div class="sup-field">
+          <label class="sup-label">Подробное описание *</label>
+          <textarea id="bug-desc" class="sup-textarea" rows="5" placeholder="Опишите проблему: что делали, что ожидали, что произошло. Укажите время, координаты, условия."></textarea>
+        </div>
+
+        <!-- Row 4: steps -->
+        <div class="sup-field">
+          <label class="sup-label">Шаги воспроизведения</label>
+          <textarea id="bug-steps" class="sup-textarea" rows="3" placeholder="1. Открыл карту&#10;2. Нажал «Метка»&#10;3. Кликнул на..."></textarea>
+        </div>
+
+        <!-- Row 5: env auto-info -->
+        <div class="sup-field">
+          <label class="sup-label">Системная информация <span style="color:#334155;font-size:10px;">(заполняется автоматически)</span></label>
+          <div id="bug-sysinfo" class="sup-sysinfo"></div>
+        </div>
+
+        <!-- Row 6: media upload -->
+        <div class="sup-field">
+          <label class="sup-label">Вложения — скриншоты / видео <span style="color:#334155;font-size:10px;">(до 5 файлов, макс. 25 МБ каждый)</span></label>
+          <div id="sup-dropzone" class="sup-dropzone" onclick="document.getElementById('bug-file-input').click()">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            <div class="sup-dropzone-text">Перетащите файлы сюда или <span style="color:#f97316;cursor:pointer;">нажмите для выбора</span></div>
+            <div style="font-size:10px;color:#334155;margin-top:3px;">PNG, JPG, GIF, MP4, MOV, WEBM</div>
+          </div>
+          <input id="bug-file-input" type="file" accept="image/*,video/*" multiple style="display:none;" onchange="handleFileSelect(this.files)">
+          <div id="sup-preview-grid" class="sup-preview-grid"></div>
+        </div>
+
+        <!-- Row 7: callsign -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="sup-field">
+            <label class="sup-label">Позывной / имя</label>
+            <input id="bug-callsign" class="sup-input" type="text" placeholder="Ваш позывной или имя">
+          </div>
+          <div class="sup-field">
+            <label class="sup-label">Контакт для ответа</label>
+            <input id="bug-contact" class="sup-input" type="text" placeholder="@telegram или email">
+          </div>
+        </div>
+
+        <!-- Submit row -->
+        <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
+          <button id="sup-submit-btn" class="sup-submit" onclick="submitBugReport()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            ОТПРАВИТЬ РЕПОРТ
+          </button>
+          <button class="sup-reset" onclick="resetBugForm()">СБРОСИТЬ</button>
+          <span id="sup-form-msg" style="font-size:11px;letter-spacing:.05em;"></span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Recent reports -->
+    <div class="sup-block">
+      <div class="sup-block-head">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        МОИ РЕПОРТЫ (СЕССИЯ)
+      </div>
+      <div id="sup-reports-list">
+        <div style="padding:18px;text-align:center;font-size:11px;color:#334155;letter-spacing:.05em;">— Нет отправленных репортов —</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ NEWS ARTICLE MODAL ══════════ -->
+<div id="news-modal" style="display:none;position:fixed;inset:0;z-index:6000;background:rgba(2,6,23,0.97);backdrop-filter:blur(10px);overflow-y:auto;">
+  <div style="max-width:760px;margin:40px auto;padding:0 16px 60px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <button onclick="closeModal()" style="display:flex;align-items:center;gap:6px;background:none;border:1px solid #334155;color:#64748b;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.borderColor='rgba(249,115,22,.5)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#334155';this.style.color='#64748b'">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Назад к новостям
+      </button>
+      <span style="font-size:9px;color:#334155;letter-spacing:.1em;">PULSE // НОВОСТИ</span>
+    </div>
+    <div id="news-modal-content"></div>
+  </div>
+</div>
+
+<style>
+/* ── News card ────────────────────────────────── */
+.news-card {
+  border: 1px solid rgba(249,115,22,0.2);
+  background: rgba(15,23,42,0.6);
+  margin-bottom: 12px;
+  transition: border-color .15s, background .15s;
+  position: relative;
+}
+.news-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 5px; height: 5px;
+  border-bottom: 1px solid #f97316;
+  border-right: 1px solid #f97316;
+}
+.news-card:hover {
+  border-color: rgba(249,115,22,.5);
+  background: rgba(249,115,22,.04);
+}
+.news-card-media {
+  width: 100%;
+  aspect-ratio: 16/7;
+  object-fit: cover;
+  display: block;
+  border-bottom: 1px solid rgba(30,41,59,.8);
+  background: #0f172a;
+}
+.news-card-media-video {
+  width: 100%;
+  aspect-ratio: 16/7;
+  display: block;
+  border-bottom: 1px solid rgba(30,41,59,.8);
+  background: #000;
+}
+.news-card-body { padding: 14px 18px 16px; }
+.news-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.news-card-date {
+  font-size: 10px;
+  color: #475569;
+  letter-spacing: .06em;
+}
+.news-card-badge {
+  font-size: 9px;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border: 1px solid rgba(249,115,22,.4);
+  color: #f97316;
+  background: rgba(249,115,22,.07);
+}
+.news-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e2e8f0;
+  letter-spacing: .04em;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.news-card-excerpt {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.news-card-read {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #f97316;
+  cursor: pointer;
+  border: 1px solid rgba(249,115,22,.3);
+  padding: 4px 12px;
+  background: transparent;
+  font-family: inherit;
+  transition: all .15s;
+}
+.news-card-read:hover {
+  background: rgba(249,115,22,.1);
+  border-color: rgba(249,115,22,.6);
+}
+
+/* ── Article modal ───────────────────────────── */
+.art-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: .04em;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+.art-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #1e293b;
+}
+.art-date { font-size: 11px; color: #475569; letter-spacing: .06em; }
+.art-badge {
+  font-size: 9px;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border: 1px solid rgba(249,115,22,.4);
+  color: #f97316;
+  background: rgba(249,115,22,.07);
+}
+.art-hero {
+  width: 100%;
+  aspect-ratio: 16/8;
+  object-fit: cover;
+  display: block;
+  border: 1px solid rgba(249,115,22,.15);
+  margin-bottom: 20px;
+  background: #0f172a;
+}
+.art-hero-video {
+  width: 100%;
+  aspect-ratio: 16/8;
+  display: block;
+  border: 1px solid rgba(249,115,22,.15);
+  margin-bottom: 20px;
+  background: #000;
+}
+.art-body {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.75;
+  margin-bottom: 24px;
+  white-space: pre-wrap;
+}
+.art-gallery {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+.art-gallery.n1 { grid-template-columns: 1fr; }
+.art-gallery.n2 { grid-template-columns: 1fr 1fr; }
+.art-gallery.n3 { grid-template-columns: 1fr 1fr 1fr; }
+.art-gallery img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  display: block;
+  border: 1px solid rgba(249,115,22,.15);
+  cursor: pointer;
+  transition: border-color .15s, opacity .15s;
+  background: #0f172a;
+}
+.art-gallery img:hover { border-color: rgba(249,115,22,.5); opacity: .88; }
+.art-gallery-label {
+  font-size: 10px;
+  color: #334155;
+  letter-spacing: .06em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════════
+   LEADERBOARD STYLES
+═══════════════════════════════════════════════ */
+
+/* period buttons */
+.lb-period-btn {
+  padding: 4px 13px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  border: 1px solid #1e293b;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  transition: all .14s;
+}
+.lb-period-btn:hover  { border-color: rgba(249,115,22,.35); color: #94a3b8; }
+.lb-period-btn.active { border-color: rgba(249,115,22,.6); color: #f97316; background: rgba(249,115,22,.1); }
+
+/* sort select */
+.lb-sort-sel {
+  background: rgba(2,6,23,.7);
+  border: 1px solid #1e293b;
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 4px 28px 4px 8px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23475569' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: border-color .14s;
+}
+.lb-sort-sel:focus { border-color: rgba(249,115,22,.45); }
+.lb-sort-sel option { background: #0f172a; }
+
+/* search */
+.lb-search-inp {
+  background: rgba(2,6,23,.7);
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 4px 9px;
+  outline: none;
+  width: 160px;
+  transition: border-color .14s;
+}
+.lb-search-inp:focus { border-color: rgba(249,115,22,.45); }
+.lb-search-inp::placeholder { color: #334155; }
+
+/* table wrapper */
+.lb-table-wrap {
+  border: 1px solid rgba(249,115,22,.18);
+  background: rgba(15,23,42,.55);
+  overflow-x: auto;
+  position: relative;
+}
+.lb-table-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 5px; height: 5px;
+  border-bottom: 1px solid #f97316;
+  border-right: 1px solid #f97316;
+}
+
+/* table */
+.lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: auto;
+  white-space: nowrap;
+}
+
+/* thead */
+.lb-table thead tr {
+  border-bottom: 1px solid rgba(249,115,22,.25);
+  background: rgba(15,23,42,.8);
+}
+.lb-table th {
+  padding: 9px 10px;
+  font-size: 10px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: color .12s;
+}
+.lb-table th:hover { color: #94a3b8; }
+.lb-th-rank { width: 36px; text-align: center; }
+.lb-th-left { text-align: left; }
+.lb-th-num  { text-align: center; }
+.lb-th-trend { width: 36px; text-align: center; }
+.lb-sort-col { color: #f97316 !important; }
+.lb-sort-arr { font-size: 8px; }
+.lb-head-icon { font-size: 9px; margin-right: 3px; color: #f59e0b; }
+.lb-reb-icon  { color: #8b5cf6; }
+.lb-agro-icon { color: #06b6d4; }
+
+/* tbody rows */
+.lb-table tbody tr {
+  border-bottom: 1px solid rgba(30,41,59,.5);
+  transition: background .11s;
+}
+.lb-table tbody tr:hover { background: rgba(249,115,22,.05); }
+
+/* rank cells */
+.lb-rank {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 6px;
+}
+.lb-rank-1 { color: #fbbf24; text-shadow: 0 0 8px rgba(251,191,36,.5); }
+.lb-rank-2 { color: #94a3b8; text-shadow: 0 0 6px rgba(148,163,184,.35); }
+.lb-rank-3 { color: #c2824a; text-shadow: 0 0 6px rgba(194,130,74,.35); }
+.lb-rank-n { color: #334155; }
+
+.lb-table td {
+  padding: 9px 10px;
+  vertical-align: middle;
+}
+.lb-td-callsign {
+  font-weight: 700;
+  color: #e2e8f0;
+  letter-spacing: .04em;
+  font-size: 12.5px;
+}
+.lb-td-unit { color: #64748b; font-size: 11px; }
+.lb-td-num  { text-align: center; color: #94a3b8; }
+.lb-td-score { text-align: center; font-weight: 700; color: #f97316; font-size: 13px; }
+
+/* per-target cells */
+.lb-td-tech { text-align: center; color: #f59e0b; }
+.lb-td-pos  { text-align: center; color: #ef4444; }
+.lb-td-reb  { text-align: center; color: #8b5cf6; }
+.lb-td-agro { text-align: center; color: #06b6d4; }
+
+/* efficiency bar */
+.lb-eff-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+.lb-eff-bar-bg {
+  width: 54px;
+  height: 5px;
+  background: #1e293b;
+  border-radius: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.lb-eff-bar {
+  height: 100%;
+  border-radius: 0;
+  transition: width .3s;
+}
+.lb-eff-val { font-size: 11.5px; font-weight: 700; min-width: 34px; text-align: right; }
+
+/* trend */
+.lb-trend { text-align: center; font-size: 11px; }
+.lb-trend-up   { color: #10b981; }
+.lb-trend-dn   { color: #ef4444; }
+.lb-trend-same { color: #334155; }
+
+/* podium cards */
+.lb-podium-card {
+  border: 1px solid rgba(249,115,22,.2);
+  background: rgba(15,23,42,.65);
+  padding: 16px 14px 14px;
+  text-align: center;
+  position: relative;
+  transition: border-color .15s, background .15s;
+}
+.lb-podium-card:hover { border-color: rgba(249,115,22,.45); background: rgba(249,115,22,.04); }
+.lb-podium-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 5px; height: 5px;
+  border-bottom: 1px solid #f97316;
+  border-right: 1px solid #f97316;
+}
+.lb-podium-num { font-size: 28px; font-weight: 900; letter-spacing: -.01em; margin-bottom: 2px; }
+.lb-podium-call { font-size: 14px; font-weight: 700; color: #e2e8f0; letter-spacing: .05em; margin-bottom: 2px; }
+.lb-podium-unit { font-size: 10px; color: #475569; letter-spacing: .05em; margin-bottom: 10px; }
+.lb-podium-score { font-size: 22px; font-weight: 900; color: #f97316; letter-spacing: .02em; margin-bottom: 4px; }
+.lb-podium-score-lbl { font-size: 9px; color: #334155; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+.lb-podium-stats {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-size: 11px;
+  border-top: 1px solid #1e293b;
+  padding-top: 10px;
+}
+.lb-podium-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.lb-podium-stat-val { font-weight: 700; font-size: 13px; }
+.lb-podium-stat-lbl { font-size: 9px; color: #334155; letter-spacing: .06em; }
+
+/* row highlight for top-3 */
+.lb-row-1 { background: rgba(251,191,36,.04); }
+.lb-row-2 { background: rgba(148,163,184,.03); }
+.lb-row-3 { background: rgba(194,130,74,.04); }
+
+/* ── Support overlay ─────────────────────────── */
+.sup-block {
+  border: 1px solid rgba(249,115,22,0.2);
+  background: rgba(15,23,42,0.6);
+  position: relative;
+}
+.sup-block::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 5px; height: 5px;
+  border-bottom: 1px solid #f97316;
+  border-right: 1px solid #f97316;
+}
+.sup-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #1e293b;
+  background: rgba(15,23,42,0.7);
+  font-size: 12px;
+  font-weight: 700;
+  color: #f97316;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* contacts */
+.sup-contact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(30,41,59,.6);
+  font-size: 12px;
+  transition: background .12s;
+}
+.sup-contact-row:hover { background: rgba(249,115,22,.04); }
+.sup-contact-label { color: #475569; letter-spacing: .04em; }
+.sup-contact-val { color: #cbd5e1; font-size: 12.5px; }
+.sup-link { color: #60a5fa; text-decoration: none; transition: color .15s; }
+.sup-link:hover { color: #f97316; }
+
+/* status */
+.sup-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(30,41,59,.5);
+  font-size: 12px;
+  transition: background .12s;
+}
+.sup-status-row:hover { background: rgba(249,115,22,.04); }
+.sup-status-label { color: #475569; }
+.sup-status-ok   { color: #10b981; font-size: 11px; letter-spacing: .06em; }
+.sup-status-warn { color: #f59e0b; font-size: 11px; letter-spacing: .06em; }
+.sup-status-err  { color: #ef4444; font-size: 11px; letter-spacing: .06em; }
+
+/* form fields */
+.sup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.sup-label {
+  font-size: 11px;
+  color: #64748b;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.sup-input {
+  background: rgba(2,6,23,.7);
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color .15s;
+  width: 100%;
+}
+.sup-input:focus { border-color: rgba(249,115,22,.5); }
+.sup-input::placeholder { color: #334155; }
+
+.sup-select {
+  background: rgba(2,6,23,.7);
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  padding: 7px 10px;
+  outline: none;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color .15s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23475569' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.sup-select:focus { border-color: rgba(249,115,22,.5); }
+.sup-select option { background: #0f172a; color: #cbd5e1; }
+
+.sup-textarea {
+  background: rgba(2,6,23,.7);
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+  outline: none;
+  resize: vertical;
+  min-height: 70px;
+  width: 100%;
+  line-height: 1.6;
+  transition: border-color .15s;
+}
+.sup-textarea:focus { border-color: rgba(249,115,22,.5); }
+.sup-textarea::placeholder { color: #334155; }
+
+/* priority radios */
+.sup-prio-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: .07em;
+  padding: 5px 9px;
+  border: 1px solid #1e293b;
+  color: #475569;
+  transition: all .12s;
+  white-space: nowrap;
+  user-select: none;
+}
+.sup-prio-label input[type=radio] { display: none; }
+.sup-prio-label:has(input:checked) { color: #f97316; border-color: rgba(249,115,22,.5); background: rgba(249,115,22,.1); }
+.sup-prio-label[data-prio="crit"]:has(input:checked) { color: #ef4444; border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.1); }
+.sup-prio-label:hover { border-color: rgba(249,115,22,.35); color: #94a3b8; }
+
+/* sysinfo box */
+.sup-sysinfo {
+  background: rgba(2,6,23,.6);
+  border: 1px solid #1e293b;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.7;
+  letter-spacing: .03em;
+}
+
+/* dropzone */
+.sup-dropzone {
+  border: 1px dashed rgba(249,115,22,.3);
+  background: rgba(2,6,23,.5);
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.sup-dropzone:hover,
+.sup-dropzone.drag-over {
+  border-color: rgba(249,115,22,.7);
+  background: rgba(249,115,22,.05);
+}
+.sup-dropzone-text { font-size: 12.5px; color: #64748b; }
+
+/* preview grid */
+.sup-preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.sup-preview-item {
+  position: relative;
+  width: 90px;
+  height: 68px;
+  border: 1px solid rgba(249,115,22,.2);
+  background: #0f172a;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.sup-preview-item img,
+.sup-preview-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sup-preview-remove {
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 18px; height: 18px;
+  background: rgba(239,68,68,.85);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+  font-family: inherit;
+  transition: background .12s;
+}
+.sup-preview-remove:hover { background: #ef4444; }
+.sup-preview-type {
+  position: absolute;
+  bottom: 2px; left: 3px;
+  font-size: 8px;
+  color: rgba(255,255,255,.7);
+  letter-spacing: .04em;
+  text-shadow: 0 1px 3px rgba(0,0,0,.9);
+}
+
+/* submit */
+.sup-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(249,115,22,.6);
+  background: rgba(249,115,22,.12);
+  color: #f97316;
+  cursor: pointer;
+  transition: all .15s;
+}
+.sup-submit:hover { background: rgba(249,115,22,.22); border-color: #f97316; }
+.sup-submit:disabled { opacity: .4; cursor: default; }
+
+.sup-reset {
+  padding: 8px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  transition: all .15s;
+}
+.sup-reset:hover { border-color: rgba(249,115,22,.35); color: #64748b; }
+
+/* reports list */
+.sup-report-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(30,41,59,.5);
+  font-size: 12px;
+  transition: background .12s;
+}
+.sup-report-row:hover { background: rgba(249,115,22,.03); }
+.sup-report-id { color: #334155; font-size: 10px; white-space: nowrap; margin-top: 1px; }
+.sup-report-body { flex: 1; }
+.sup-report-title { color: #cbd5e1; margin-bottom: 3px; }
+.sup-report-meta { font-size: 10px; color: #475569; display: flex; gap: 10px; flex-wrap: wrap; }
+.sup-report-badge {
+  font-size: 9px;
+  letter-spacing: .07em;
+  padding: 1px 6px;
+  border: 1px solid;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.badge-low  { color: #64748b; border-color: #334155; }
+.badge-med  { color: #f59e0b; border-color: rgba(245,158,11,.4); }
+.badge-high { color: #f97316; border-color: rgba(249,115,22,.5); }
+.badge-crit { color: #ef4444; border-color: rgba(239,68,68,.5); }
+.sup-report-status {
+  font-size: 10px;
+  white-space: nowrap;
+  padding: 2px 7px;
+  border: 1px solid rgba(16,185,129,.35);
+  color: #10b981;
+  background: rgba(16,185,129,.07);
+  align-self: flex-start;
+  margin-top: 1px;
+}
+
+/* ── Lightbox ────────────────────────────────── */
+#lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0,0,0,.92);
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+#lightbox.open { display: flex; }
+#lightbox img {
+  max-width: 92vw;
+  max-height: 88vh;
+  object-fit: contain;
+  border: 1px solid rgba(249,115,22,.3);
+}
+</style>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<style>
+/* ── Settings toggle switch ───────────────────── */
+.stg-toggle {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 20px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.stg-toggle input { opacity: 0; width: 0; height: 0; }
+.stg-slider {
+  position: absolute;
+  inset: 0;
+  background: #1e293b;
+  border: 1px solid #334155;
+  transition: .2s;
+}
+.stg-slider::before {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  left: 2px; top: 2px;
+  background: #475569;
+  transition: .2s;
+}
+.stg-toggle input:checked + .stg-slider {
+  background: rgba(249,115,22,.2);
+  border-color: rgba(249,115,22,.6);
+}
+.stg-toggle input:checked + .stg-slider::before {
+  transform: translateX(18px);
+  background: #f97316;
+  box-shadow: 0 0 6px rgba(249,115,22,.6);
+}
+
+/* ── Settings row ─────────────────────────────── */
+.stg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 18px;
+  border-bottom: 1px solid rgba(30,41,59,.7);
+  gap: 16px;
+  transition: background .12s;
+}
+.stg-row:hover { background: rgba(249,115,22,.04); }
+.stg-label {
+  font-size: 12.5px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+.stg-label strong { color: #cbd5e1; font-weight: 600; }
+</style>
+
+<!-- ══════════ MARK FORM POPUP ══════════ -->
+<div id="mark-popup" style="display:none;position:fixed;z-index:8000;pointer-events:none;">
+  <div class="mfp-wrap" id="mfp-inner">
+
+    <!-- header -->
+    <div class="mfp-head">
+      <div style="display:flex;align-items:center;gap:7px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span>НОВАЯ МЕТКА</span>
+      </div>
+      <button class="mfp-close" onclick="cancelMark()" title="Отмена">✕</button>
+    </div>
+
+    <!-- coords (readonly) -->
+    <div class="mfp-coords" id="mfp-coords-display"></div>
+
+    <!-- body -->
+    <div class="mfp-body">
+
+      <!-- Название -->
+      <div class="mfp-field">
+        <label class="mfp-label">Название</label>
+        <input id="mfp-name" class="mfp-input" type="text" placeholder="Обозначение метки…" maxlength="40" autocomplete="off">
+      </div>
+
+      <!-- Тип объекта -->
+      <div class="mfp-field">
+        <label class="mfp-label">Тип объекта</label>
+        <div class="mfp-type-grid" id="mfp-type-grid">
+          <button class="mfp-type-btn" data-type="tech"     data-color="#ef4444" onclick="selectMarkType(this)">
+            <span class="mfp-type-dot" style="background:#ef4444;"></span>Техника
+          </button>
+          <button class="mfp-type-btn" data-type="infantry" data-color="#84cc16" onclick="selectMarkType(this)">
+            <span class="mfp-type-dot" style="background:#84cc16;"></span>Живая сила
+          </button>
+          <button class="mfp-type-btn" data-type="reb"      data-color="#8b5cf6" onclick="selectMarkType(this)">
+            <span class="mfp-type-dot" style="background:#8b5cf6;"></span>РЭБ
+          </button>
+          <button class="mfp-type-btn" data-type="arty"     data-color="#f59e0b" onclick="selectMarkType(this)">
+            <span class="mfp-type-dot" style="background:#f59e0b;"></span>Арт-позиция
+          </button>
+          <button class="mfp-type-btn" data-type="agro"     data-color="#06b6d4" onclick="selectMarkType(this)">
+            <span class="mfp-type-dot" style="background:#06b6d4;"></span>Агро-дроны
+          </button>
+          <button class="mfp-type-btn" data-type="enemy-eq" data-color="#f97316" onclick="selectMarkType(this)">
+            <span class="mfp-type-dot" style="background:#f97316;"></span>Обор. противника
+          </button>
+          <button class="mfp-type-btn" data-type="delivery" data-color="#38bdf8" onclick="selectMarkType(this)">
+            <span class="mfp-type-dot" style="background:#38bdf8;"></span>Доставка пехоте
+          </button>
+        </div>
+      </div>
+
+      <!-- Приоритет -->
+      <div class="mfp-field">
+        <label class="mfp-label">Приоритет</label>
+        <div class="mfp-prio-row">
+          <label class="mfp-prio" data-p="low">
+            <input type="radio" name="mfp-prio" value="low">
+            <span>НИЗКИЙ</span>
+          </label>
+          <label class="mfp-prio" data-p="med">
+            <input type="radio" name="mfp-prio" value="med" checked>
+            <span>СРЕДНИЙ</span>
+          </label>
+          <label class="mfp-prio" data-p="high">
+            <input type="radio" name="mfp-prio" value="high">
+            <span>ВЫСОКИЙ</span>
+          </label>
+          <label class="mfp-prio" data-p="crit">
+            <input type="radio" name="mfp-prio" value="crit">
+            <span>КРИТ</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Доп. инфо -->
+      <div class="mfp-field">
+        <label class="mfp-label">Информация</label>
+        <textarea id="mfp-info" class="mfp-textarea" rows="2" placeholder="Доп. сведения, поведение цели…"></textarea>
+      </div>
+
+      <!-- Вложения -->
+      <div class="mfp-field">
+        <label class="mfp-label">Фото / Видео <span style="color:#334155;font-size:9px;">(до 3 файлов)</span></label>
+        <div class="mfp-dropzone" id="mfp-dropzone" onclick="document.getElementById('mfp-file-input').click()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          <span style="font-size:10px;color:#475569;">Перетащите или <span style="color:#f97316;">выберите файл</span></span>
+        </div>
+        <input id="mfp-file-input" type="file" accept="image/*,video/*" multiple style="display:none;" onchange="mfpHandleFiles(this.files)">
+        <div id="mfp-preview-grid" class="mfp-preview-grid"></div>
+      </div>
+
+    </div><!-- /mfp-body -->
+
+    <!-- footer -->
+    <div class="mfp-footer">
+      <button class="mfp-btn-cancel" onclick="cancelMark()">ОТМЕНА</button>
+      <button class="mfp-btn-add" onclick="confirmMark()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        ДОБАВИТЬ МЕТКУ
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<style>
+/* ══ Mark form popup ════════════════════════════ */
+.mfp-wrap {
+  pointer-events: auto;
+  width: 320px;
+  background: rgba(2,6,23,0.97);
+  border: 1px solid rgba(249,115,22,.45);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0,0,0,.7), 0 0 0 1px rgba(249,115,22,.08);
+  font-family: 'JetBrains Mono', monospace;
+  position: relative;
+  animation: mfp-appear .15s ease;
+}
+@keyframes mfp-appear {
+  from { opacity:0; transform:translateY(-6px) scale(.97); }
+  to   { opacity:1; transform:translateY(0)   scale(1);   }
+}
+/* corner decoration */
+.mfp-wrap::before {
+  content:'';
+  position:absolute;
+  top:0;left:0;
+  width:5px;height:5px;
+  border-top:1px solid #f97316;
+  border-left:1px solid #f97316;
+}
+.mfp-wrap::after {
+  content:'';
+  position:absolute;
+  bottom:0;right:0;
+  width:5px;height:5px;
+  border-bottom:1px solid #f97316;
+  border-right:1px solid #f97316;
+}
+
+.mfp-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:9px 12px;
+  border-bottom:1px solid rgba(30,41,59,.9);
+  background:rgba(15,23,42,.8);
+  font-size:11px;
+  font-weight:700;
+  color:#f97316;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.mfp-close {
+  background:none;
+  border:none;
+  color:#475569;
+  cursor:pointer;
+  font-size:13px;
+  font-family:inherit;
+  padding:0 2px;
+  transition:color .12s;
+  line-height:1;
+}
+.mfp-close:hover { color:#f97316; }
+
+.mfp-coords {
+  padding:5px 12px;
+  font-size:9.5px;
+  color:#475569;
+  letter-spacing:.05em;
+  background:rgba(15,23,42,.5);
+  border-bottom:1px solid rgba(30,41,59,.6);
+}
+
+.mfp-body {
+  padding:12px 12px 8px;
+  display:flex;
+  flex-direction:column;
+  gap:11px;
+}
+
+.mfp-field {
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.mfp-label {
+  font-size:9.5px;
+  color:#475569;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.mfp-input {
+  background:rgba(2,6,23,.8);
+  border:1px solid #1e293b;
+  color:#cbd5e1;
+  font-family:inherit;
+  font-size:12px;
+  padding:6px 8px;
+  outline:none;
+  width:100%;
+  transition:border-color .13s;
+}
+.mfp-input:focus { border-color:rgba(249,115,22,.55); }
+.mfp-input::placeholder { color:#334155; }
+
+.mfp-textarea {
+  background:rgba(2,6,23,.8);
+  border:1px solid #1e293b;
+  color:#cbd5e1;
+  font-family:inherit;
+  font-size:11.5px;
+  padding:6px 8px;
+  outline:none;
+  resize:none;
+  width:100%;
+  line-height:1.5;
+  transition:border-color .13s;
+}
+.mfp-textarea:focus { border-color:rgba(249,115,22,.55); }
+.mfp-textarea::placeholder { color:#334155; }
+
+/* type grid — 4 колонки для 8 типов */
+.mfp-type-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr 1fr;
+  gap:5px;
+}
+.mfp-type-btn {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:5px 5px;
+  font-family:inherit;
+  font-size:9.5px;
+  letter-spacing:.02em;
+  border:1px solid #1e293b;
+  background:transparent;
+  color:#64748b;
+  cursor:pointer;
+  transition:all .12s;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.mfp-type-btn:hover { border-color:rgba(249,115,22,.3); color:#94a3b8; }
+.mfp-type-btn.active { border-color:rgba(249,115,22,.6); color:#e2e8f0; background:rgba(249,115,22,.08); }
+.mfp-type-dot {
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+
+/* priority row */
+.mfp-prio-row {
+  display:flex;
+  gap:4px;
+}
+.mfp-prio {
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px 3px;
+  font-size:9px;
+  letter-spacing:.06em;
+  border:1px solid #1e293b;
+  color:#475569;
+  cursor:pointer;
+  transition:all .12s;
+  user-select:none;
+}
+.mfp-prio input { display:none; }
+.mfp-prio:has(input:checked) { color:#f97316; border-color:rgba(249,115,22,.55); background:rgba(249,115,22,.09); }
+.mfp-prio[data-p="crit"]:has(input:checked) { color:#ef4444; border-color:rgba(239,68,68,.55); background:rgba(239,68,68,.09); }
+.mfp-prio:hover { border-color:rgba(249,115,22,.3); color:#94a3b8; }
+
+/* footer */
+.mfp-footer {
+  display:flex;
+  gap:7px;
+  padding:9px 12px 11px;
+  border-top:1px solid rgba(30,41,59,.8);
+  background:rgba(15,23,42,.5);
+}
+.mfp-btn-cancel {
+  flex:0 0 auto;
+  padding:6px 12px;
+  font-family:inherit;
+  font-size:10.5px;
+  letter-spacing:.07em;
+  border:1px solid #334155;
+  background:transparent;
+  color:#475569;
+  cursor:pointer;
+  transition:all .12s;
+}
+.mfp-btn-cancel:hover { border-color:rgba(249,115,22,.3); color:#64748b; }
+.mfp-btn-add {
+  flex:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:6px 10px;
+  font-family:inherit;
+  font-size:10.5px;
+  font-weight:700;
+  letter-spacing:.08em;
+  border:1px solid rgba(249,115,22,.6);
+  background:rgba(249,115,22,.12);
+  color:#f97316;
+  cursor:pointer;
+  transition:all .13s;
+}
+.mfp-btn-add:hover { background:rgba(249,115,22,.22); border-color:#f97316; color:#fff; }
+
+/* mark popup file drop zone */
+.mfp-dropzone {
+  display:flex; align-items:center; gap:7px;
+  padding:7px 10px;
+  border:1px dashed rgba(249,115,22,.3);
+  background:rgba(249,115,22,.04);
+  cursor:pointer;
+  transition:border-color .15s;
+}
+.mfp-dropzone:hover { border-color:rgba(249,115,22,.6); background:rgba(249,115,22,.08); }
+.mfp-dropzone.drag-over { border-color:#f97316; background:rgba(249,115,22,.12); }
+.mfp-preview-grid {
+  display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;
+}
+.mfp-preview-item {
+  position:relative; width:60px; height:48px;
+  border:1px solid rgba(249,115,22,.25); overflow:hidden;
+}
+.mfp-preview-item img,
+.mfp-preview-item video {
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+.mfp-preview-remove {
+  position:absolute; top:1px; right:1px;
+  background:rgba(2,6,23,.8); border:none; color:#94a3b8;
+  font-size:9px; padding:1px 3px; cursor:pointer; line-height:1;
+}
+.mfp-preview-remove:hover { color:#ef4444; }
+
+/* pin cursor dot on map while placing */
+#mark-cursor-dot {
+  position:absolute;
+  width:14px; height:14px;
+  border-radius:50%;
+  border:2px solid #f97316;
+  background:rgba(249,115,22,.25);
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  z-index:600;
+  display:none;
+  box-shadow:0 0 8px rgba(249,115,22,.6);
+}
+</style>
+
+</div><!-- /app -->
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════
+   CLOCK
+═══════════════════════════════════════════ */
+function tick() {
+  document.getElementById('clock').textContent =
+    new Date().toISOString().slice(11,19) + ' UTC';
+}
+tick(); setInterval(tick, 1000);
+
+/* ═══════════════════════════════════════════
+   LEAFLET MAP — Google Satellite
+═══════════════════════════════════════════ */
+const map = L.map('leaflet-map', {
+  center: [48.5, 37.5],
+  zoom: 15,
+  zoomControl: true,
+  attributionControl: true,
+  preferCanvas: false
+});
+
+L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+  maxZoom: 21,
+  attribution: '&copy; Google Satellite'
+}).addTo(map);
+
+/* ── Custom SVG marker factory ─────────────────── */
+function makeIcon(color) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
+    <circle cx="11" cy="11" r="6" fill="${color}" opacity=".95"/>
+    <circle cx="11" cy="11" r="9" fill="none" stroke="${color}" stroke-width="1.2" opacity=".45"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -14]
+  });
+}
+
+/* ── Popup style injected once ─────────────────── */
+const popupStyle = document.createElement('style');
+popupStyle.textContent = `
+  .lf-popup .leaflet-popup-content-wrapper {
+    background: rgba(2,6,23,.97);
+    border: 1px solid rgba(249,115,22,.4);
+    border-radius: 0;
+    box-shadow: 0 0 18px rgba(249,115,22,.12);
+    padding: 0;
+    color: #cbd5e1;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .lf-popup .leaflet-popup-content { margin: 0; }
+  .lf-popup .leaflet-popup-tip-container { display: none; }
+  .lf-popup .leaflet-popup-close-button {
+    color: #475569 !important;
+    font-size: 14px !important;
+    top: 6px !important; right: 8px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+  }
+  .lf-popup .leaflet-popup-close-button:hover { color: #f97316 !important; }
+  .pop-inner { padding: 10px 12px; min-width: 200px; }
+  .pop-title { font-size: 12.5px; font-weight: 700; color: #f97316; letter-spacing: .08em; margin-bottom: 8px; }
+  .pop-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; gap: 12px; }
+  .pop-lbl { color: #64748b; white-space: nowrap; }
+  .pop-val { color: #cbd5e1; text-align: right; }
+  .pop-btns { display: flex; gap: 6px; margin-top: 8px; }
+  .pop-btn {
+    flex: 1; border: 1px solid #334155; background: transparent;
+    color: #64748b; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: .05em; padding: 3px 4px;
+    cursor: pointer; transition: all .15s;
+  }
+  .pop-btn:hover { border-color: rgba(249,115,22,.5); color: #f97316; background: rgba(249,115,22,.08); }
+  .pop-btn-red { border-color: rgba(239,68,68,.4); color: #ef4444; background: rgba(239,68,68,.07); }
+  .pop-btn-red:hover { border-color: #ef4444; background: rgba(239,68,68,.15); color: #f87171; }
+`;
+document.head.appendChild(popupStyle);
+
+/* ── Helper: build popup HTML ──────────────────── */
+function popupHtml(d, markerId) {
+  return `<div class="pop-inner">
+    <div class="pop-title">${d.type}</div>
+    <div class="pop-row"><span class="pop-lbl">Подтип:</span><span class="pop-val">${d.sub}</span></div>
+    <div class="pop-row"><span class="pop-lbl">СК-42:</span><span class="pop-val">${d.coords}</span></div>
+    <div class="pop-row"><span class="pop-lbl">Фиксация:</span><span class="pop-val">${d.t}</span></div>
+    <div class="pop-row"><span class="pop-lbl">Инфо:</span><span class="pop-val">${d.info}</span></div>
+    <div class="pop-btns">
+      <button class="pop-btn pop-btn-red" onclick="destroyMarker('${markerId}')">УНИЧТОЖЕНО</button>
+      <button class="pop-btn" onclick="map.closePopup()">СКРЫТЬ</button>
+    </div>
+  </div>`;
+}
+
+/* ── Target markers data ───────────────────────── */
+const TARGETS = {
+  pos1:  { lat:48.502, lng:37.504, color:'#ef4444', type:'ПОЗИЦИЯ',   sub:'Огневая точка',      coords:'X:6412540 · Y:2306120', t:'12:31 UTC', info:'Замечено движение' },
+  tech1: { lat:48.499, lng:37.508, color:'#f59e0b', type:'ТЕХНИКА',   sub:'БТР / колёсная',     coords:'X:6412740 · Y:2306210', t:'12:38 UTC', info:'Движется на СЗ'   },
+  reb1:  { lat:48.497, lng:37.501, color:'#8b5cf6', type:'РЭБ',       sub:'Станция подавления', coords:'X:6412880 · Y:2306340', t:'12:19 UTC', info:'Частоты: 5.8 ГГц' },
+  agro1: { lat:48.504, lng:37.510, color:'#06b6d4', type:'АГРО-ДРОН', sub:'Гексакоптер',        coords:'X:6412660 · Y:2305970', t:'12:44 UTC', info:'Высота ~40м'      }
+};
+
+const markerRefs = {};
+Object.entries(TARGETS).forEach(([id, d]) => {
+  const m = L.marker([d.lat, d.lng], { icon: makeIcon(d.color) })
+    .addTo(map)
+    .bindPopup(popupHtml(d, id), {
+      className: 'lf-popup',
+      maxWidth: 260,
+      closeButton: true,
+      autoClose: true
+    });
+  markerRefs[id] = m;
+});
+
+function destroyMarker(id) {
+  if (markerRefs[id]) { markerRefs[id].remove(); delete markerRefs[id]; }
+  map.closePopup();
+  fetch('/api/markers/' + id, { method: 'DELETE' }).catch(() => {});
+}
+
+/* ── REB zone circle ───────────────────────────── */
+L.circle([48.500, 37.502], {
+  radius: 110,
+  color: '#8b5cf6',
+  weight: 1,
+  dashArray: '6 4',
+  fillColor: '#8b5cf6',
+  fillOpacity: 0.06
+}).addTo(map).bindTooltip('РЭБ-А · 110м', {
+  permanent: true,
+  direction: 'top',
+  className: 'lf-reb-tip',
+  offset: [0, -6]
+});
+const rebTipStyle = document.createElement('style');
+rebTipStyle.textContent = `.lf-reb-tip { background:transparent; border:none; box-shadow:none; color:rgba(167,139,250,.85); font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:.05em; }`;
+document.head.appendChild(rebTipStyle);
+
+/* ═══════════════════════════════════════════
+   FREQ TABLE
+   Одна строка = одна частота (4900..6000 шаг 100)
+   Колонки: каналы, строки = группы по 12
+═══════════════════════════════════════════ */
+// Генерируем частоты 4900..6000 с шагом 10 (111 значений)
+const FREQ_LIST = [];
+for (let f = 4900; f <= 6000; f += 10) FREQ_LIST.push(f);
+// 8 колонок — компактная раскладка без прокрутки
+const COLS = 8;
+const ROWS = Math.ceil(FREQ_LIST.length / COLS);
+
+const ST  = {}; // ключ: индекс частоты → 0/1/2
+const TIMERS = {};
+FREQ_LIST.forEach((_, i) => { ST[i] = 0; });
+
+let _freqSaveTimer = null;
+function freqSaveDebounced() {
+  if (_freqSaveTimer) clearTimeout(_freqSaveTimer);
+  _freqSaveTimer = setTimeout(() => {
+    const payload = {};
+    Object.entries(ST).forEach(([k,v]) => { if (v !== 0) payload[k] = v; });
+    fetch('/api/freq', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  }, 600);
+}
+
+async function loadFreqFromServer() {
+  try {
+    const res = await fetch('/api/freq');
+    if (!res.ok) return;
+    const data = await res.json();
+    Object.entries(data).forEach(([k, v]) => {
+      const i = parseInt(k, 10);
+      if (i >= 0 && i < FREQ_LIST.length) {
+        ST[i] = parseInt(v, 10);
+        if (ST[i] === 1 || ST[i] === 2) autoRelease(i);
+      }
+    });
+    renderFreq();
+  } catch (_) {}
+}
+
+function renderFreq() {
+  const tbody = document.getElementById('freq-tbody');
+  tbody.innerHTML = '';
+  for (let row = 0; row < ROWS; row++) {
+    const tr = document.createElement('tr');
+    let html = '';
+    for (let col = 0; col < COLS; col++) {
+      const idx = row * COLS + col;
+      if (idx >= FREQ_LIST.length) { html += `<td></td>`; continue; }
+      const f = FREQ_LIST[idx];
+      const s = ST[idx];
+      const cls = s===0?'f-free':s===1?'f-busy':'f-full';
+      const bg  = s===1?' f-busy-bg':s===2?' f-full-bg':'';
+      html += `<td class="${cls}${bg}" title="${f} МГц · ЛКМ занять · 2× освободить"
+        onclick="take(${idx})"
+        ondblclick="free_ch(${idx})"
+        oncontextmenu="book(event,${idx})">${f}</td>`;
+    }
+    tr.innerHTML = html;
+    tbody.appendChild(tr);
+  }
+}
+function take(i){
+  if(ST[i]===0){ST[i]=1;autoRelease(i);}
+  else if(ST[i]===1){ST[i]=2;}
+  renderFreq(); freqSaveDebounced();
+}
+function free_ch(i){
+  ST[i]=0;
+  if(TIMERS[i]){clearTimeout(TIMERS[i]);delete TIMERS[i];}
+  renderFreq(); freqSaveDebounced();
+}
+function book(e,i){
+  e.preventDefault();
+  if(ST[i]<2){ST[i]=1;autoRelease(i);}
+  renderFreq(); freqSaveDebounced();
+}
+function autoRelease(i){
+  if(TIMERS[i])clearTimeout(TIMERS[i]);
+  TIMERS[i]=setTimeout(()=>{ST[i]=0;delete TIMERS[i];renderFreq();freqSaveDebounced();},20*60*1000);
+}
+renderFreq();
+loadFreqFromServer();
+
+/* ═══════════════════════════════════════════
+   RULER TOOL
+═══════════════════════════════════════════ */
+let rulerActive = false;
+let rulerPoints = [];
+let rulerLine   = null;
+let rulerDots   = [];
+let rulerPreviewLine = null;
+
+const rulerLabel = document.getElementById('ruler-label');
+
+// Inject ruler dot style
+const rStyle = document.createElement('style');
+rStyle.textContent = `.ruler-dot { width:10px;height:10px;border-radius:50%;background:#f97316;border:2px solid #fff;box-shadow:0 0 6px #f97316; }`;
+document.head.appendChild(rStyle);
+
+function mToStr(m) {
+  return m >= 1000 ? (m/1000).toFixed(2)+' км' : Math.round(m)+' м';
+}
+
+function rulerTotalDist() {
+  let d = 0;
+  for (let i = 1; i < rulerPoints.length; i++)
+    d += rulerPoints[i-1].distanceTo(rulerPoints[i]);
+  return d;
+}
+
+function rulerUpdateLabel(extraPoint) {
+  const pts = extraPoint ? [...rulerPoints, extraPoint] : rulerPoints;
+  if (pts.length < 2) { rulerLabel.style.display='none'; return; }
+  let d = 0;
+  for (let i = 1; i < pts.length; i++) d += pts[i-1].distanceTo(pts[i]);
+  rulerLabel.style.display = 'block';
+  rulerLabel.textContent   = '📏 ' + mToStr(d);
+}
+
+function rulerClear() {
+  rulerPoints = [];
+  if (rulerLine)        { rulerLine.remove();        rulerLine = null; }
+  if (rulerPreviewLine) { rulerPreviewLine.remove();  rulerPreviewLine = null; }
+  rulerDots.forEach(d => d.remove()); rulerDots = [];
+  rulerLabel.style.display = 'none';
+}
+
+function toggleRuler() {
+  rulerActive = !rulerActive;
+  document.getElementById('btn-ruler').classList.toggle('active', rulerActive);
+  if (!rulerActive) {
+    rulerClear();
+    map.getContainer().style.cursor = markMode ? 'cell' : '';
+  } else {
+    // Деактивировать режим метки если был включён
+    if (markMode) {
+      markMode = false;
+      document.getElementById('btn-mark').classList.remove('active');
+      closeMarkPopup();
+    }
+    map.getContainer().style.cursor = 'crosshair';
+    map.closePopup();
+  }
+}
+
+map.on('click', function(e) {
+  // markMode is checked below in its own handler; ruler takes priority
+  if (!rulerActive) return;
+
+  rulerPoints.push(e.latlng);
+
+  // dot at click point
+  const dot = L.marker(e.latlng, {
+    icon: L.divIcon({ className:'ruler-dot', iconSize:[10,10], iconAnchor:[5,5] }),
+    interactive: false
+  }).addTo(map);
+  rulerDots.push(dot);
+
+  // redraw solid line
+  if (rulerLine) rulerLine.remove();
+  if (rulerPoints.length >= 2) {
+    rulerLine = L.polyline(rulerPoints, {
+      color: '#f97316', weight: 2, dashArray: '6 4', opacity: .9
+    }).addTo(map);
+  }
+
+  rulerUpdateLabel();
+});
+
+map.on('mousemove', function(e) {
+  if (!rulerActive || rulerPoints.length === 0) return;
+
+  // preview line from last point to cursor
+  if (rulerPreviewLine) rulerPreviewLine.remove();
+  rulerPreviewLine = L.polyline([rulerPoints[rulerPoints.length-1], e.latlng], {
+    color: '#f97316', weight: 1.5, dashArray: '4 6', opacity: .55
+  }).addTo(map);
+
+  rulerUpdateLabel(e.latlng);
+});
+
+// Double-click finishes measurement
+map.on('dblclick', function(e) {
+  if (!rulerActive) return;
+  L.DomEvent.stopPropagation(e);
+  if (rulerPreviewLine) { rulerPreviewLine.remove(); rulerPreviewLine = null; }
+  rulerUpdateLabel(); // freeze label without preview
+});
+
+// Escape for ruler handled in master keydown listener below
+
+/* ═══════════════════════════════════════════
+   MARK MODE  — с формой добавления метки
+═══════════════════════════════════════════ */
+let markMode = false;
+let pendingMarkLatLng = null;
+let selectedMarkType  = null;
+
+/* ── WGS-84 → СК-42 (Пулково) ───────────────────
+   Алгоритм: WGS-84 → ПЗ-90 (малый сдвиг) →
+   эллипсоид Красовского → проекция Гаусса-Крюгера
+   Точность: ±2–5 м для широт зоны 36–39 (Украина/ДНР)
+──────────────────────────────────────────────────*/
+function wgs84toSK42(lat_deg, lon_deg) {
+  // --- WGS-84 → ПЗ-90 (упрощённый сдвиг датума) ---
+  const lat_r = lat_deg * Math.PI / 180;
+  const lon_r = lon_deg * Math.PI / 180;
+
+  // Параметры эллипсоида WGS-84
+  const a_wgs = 6378137.0;
+  const f_wgs = 1 / 298.257223563;
+  const e2_wgs = 2*f_wgs - f_wgs*f_wgs;
+  const N_wgs = a_wgs / Math.sqrt(1 - e2_wgs * Math.sin(lat_r)**2);
+
+  // Декартовы координаты WGS-84
+  const X_wgs = (N_wgs) * Math.cos(lat_r) * Math.cos(lon_r);
+  const Y_wgs = (N_wgs) * Math.cos(lat_r) * Math.sin(lon_r);
+  const Z_wgs = (N_wgs * (1 - e2_wgs)) * Math.sin(lat_r);
+
+  // Параметры трансформации WGS-84 → СК-42/Красовский
+  // Сдвиги dx,dy,dz (м), угловые ωx,ωy,ωz (рад), масштаб m
+  const dx = 23.92, dy = -141.27, dz = -80.90;
+  const wx = -0.0  * Math.PI/648000;
+  const wy = -0.35 * Math.PI/648000;
+  const wz = -0.82 * Math.PI/648000;
+  const m  = -0.12e-6;
+
+  const X_sk = X_wgs + dx + X_wgs*m - Z_wgs*wy + Y_wgs*wz;
+  const Y_sk = Y_wgs + dy + Y_wgs*m - X_wgs*wz + Z_wgs*wx;
+  const Z_sk = Z_wgs + dz + Z_wgs*m - Y_wgs*wx + X_wgs*wy;
+
+  // --- Декартовые → геодезические (эллипсоид Красовского) ---
+  const a_kr  = 6378245.0;
+  const f_kr  = 1 / 298.3;
+  const e2_kr = 2*f_kr - f_kr*f_kr;
+  const p = Math.sqrt(X_sk**2 + Y_sk**2);
+
+  let lat_sk = Math.atan2(Z_sk, p * (1 - e2_kr));
+  for (let i = 0; i < 10; i++) {
+    const N_i = a_kr / Math.sqrt(1 - e2_kr * Math.sin(lat_sk)**2);
+    lat_sk = Math.atan2(Z_sk + e2_kr * N_i * Math.sin(lat_sk), p);
+  }
+  const lon_sk = Math.atan2(Y_sk, X_sk);
+
+  // --- Проекция Гаусса-Крюгера → X, Y СК-42 ---
+  // Зона определяется автоматически (6-градусные зоны)
+  const zone = Math.floor(lon_deg / 6) + 1;
+  const lon0_r = (zone * 6 - 3) * Math.PI / 180;
+
+  const a  = a_kr;
+  const e2 = e2_kr;
+  const e4 = e2*e2, e6 = e2*e2*e2;
+
+  const sinLat = Math.sin(lat_sk);
+  const cosLat = Math.cos(lat_sk);
+  const tanLat = Math.tan(lat_sk);
+  const N2  = a / Math.sqrt(1 - e2 * sinLat**2);
+  const eta2 = (e2 / (1 - e2)) * cosLat**2; // η²
+
+  // Длина дуги меридиана (полная формула)
+  const A0 = 1 - e2/4 - 3*e4/64 - 5*e6/256;
+  const A2 = 3/8 * (e2 + e4/4 + 15*e6/128);
+  const A4 = 15/256 * (e4 + 3*e6/4);
+  const A6 = 35*e6/3072;
+  const M  = a * (A0*lat_sk - A2*Math.sin(2*lat_sk) + A4*Math.sin(4*lat_sk) - A6*Math.sin(6*lat_sk));
+
+  const dlon  = lon_sk - lon0_r;
+  const dlon2 = dlon*dlon;
+  const dlon3 = dlon2*dlon;
+  const dlon4 = dlon2*dlon2;
+  const dlon5 = dlon4*dlon;
+  const dlon6 = dlon5*dlon;
+
+  const T = tanLat**2;
+  const C = eta2;
+
+  // X (северная координата) — полная формула 6-го порядка
+  const X_gk = M
+    + N2*sinLat*cosLat/2 * dlon2
+    + N2*sinLat*cosLat**3/24  * (5 - T + 9*C + 4*C*C)    * dlon4
+    + N2*sinLat*cosLat**5/720 * (61 - 58*T + T*T)         * dlon6;
+
+  // Y (восточная координата) — полная формула 5-го порядка + зонное смещение
+  const Y_gk = N2*cosLat * dlon
+    + N2*cosLat**3/6   * (1 - T + C)                               * dlon3
+    + N2*cosLat**5/120 * (5 - 18*T + T*T + 14*C - 58*T*C)         * dlon5;
+
+  const X_final = Math.round(X_gk);
+  const Y_final = Math.round(Y_gk + zone * 1000000 + 500000);
+
+  return { X: X_final, Y: Y_final, zone };
+}
+
+/* Форматирование СК-42 для отображения */
+function formatSK42(lat, lon) {
+  const sk = wgs84toSK42(lat, lon);
+  return {
+    str:  `X: ${sk.X.toLocaleString('ru')}  Y: ${sk.Y.toLocaleString('ru')}`,
+    full: `X:${sk.X} · Y:${sk.Y} · Зона:${sk.zone}`,
+    X: sk.X, Y: sk.Y, zone: sk.zone
+  };
+}
+
+/* ── Иконка маркера ──────────────────────────── */
+function makeCustomMarkerIcon(color) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="28" viewBox="0 0 22 28">
+    <ellipse cx="11" cy="26" rx="5" ry="2" fill="rgba(0,0,0,.35)"/>
+    <path d="M11 0C7 0 3.5 3.3 3.5 8c0 6 7.5 18 7.5 18s7.5-12 7.5-18C18.5 3.3 15 0 11 0z" fill="${color}"/>
+    <circle cx="11" cy="8" r="3.5" fill="#fff" opacity=".85"/>
+  </svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize:[22,28], iconAnchor:[11,28], popupAnchor:[0,-30] });
+}
+
+const PRIO_LABELS = { low:'Низкий', med:'Средний', high:'Высокий', crit:'КРИТ' };
+const PRIO_COLORS = { low:'#64748b', med:'#f59e0b', high:'#f97316', crit:'#ef4444' };
+
+/* ── Mark popup file attachments ─────────────────── */
+let mfpFiles = []; // { file, url, isVideo }
+
+function mfpSetupDropzone() {
+  const dz = document.getElementById('mfp-dropzone');
+  if (dz._mfpDZ) return;
+  dz._mfpDZ = true;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    mfpHandleFiles(e.dataTransfer.files);
+  });
+}
+
+function mfpHandleFiles(files) {
+  const allowed = ['image/png','image/jpeg','image/gif','image/webp','video/mp4','video/quicktime','video/webm'];
+  for (const f of files) {
+    if (mfpFiles.length >= 3) break;
+    if (!allowed.includes(f.type)) continue;
+    if (f.size > 25 * 1024 * 1024) continue;
+    const url = URL.createObjectURL(f);
+    mfpFiles.push({ file: f, url, isVideo: f.type.startsWith('video/') });
+  }
+  mfpRenderPreviews();
+}
+
+function mfpRenderPreviews() {
+  const grid = document.getElementById('mfp-preview-grid');
+  grid.innerHTML = '';
+  mfpFiles.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'mfp-preview-item';
+    div.innerHTML = item.isVideo
+      ? `<video src="${item.url}" muted></video><button class="mfp-preview-remove" onclick="mfpRemoveFile(${i})">✕</button>`
+      : `<img src="${item.url}" alt=""><button class="mfp-preview-remove" onclick="mfpRemoveFile(${i})">✕</button>`;
+    grid.appendChild(div);
+  });
+}
+
+function mfpRemoveFile(i) {
+  URL.revokeObjectURL(mfpFiles[i].url);
+  mfpFiles.splice(i, 1);
+  mfpRenderPreviews();
+}
+
+function mfpClearFiles() {
+  mfpFiles.forEach(f => URL.revokeObjectURL(f.url));
+  mfpFiles = [];
+  const grid = document.getElementById('mfp-preview-grid');
+  if (grid) grid.innerHTML = '';
+}
+
+function toggleMarkMode() {
+  markMode = !markMode;
+  document.getElementById('btn-mark').classList.toggle('active', markMode);
+  if (markMode) {
+    // Деактивировать линейку если была включена
+    if (rulerActive) {
+      rulerActive = false;
+      document.getElementById('btn-ruler').classList.remove('active');
+      rulerClear();
+    }
+    map.getContainer().style.cursor = 'cell';
+  } else {
+    map.getContainer().style.cursor = '';
+    closeMarkPopup();
+  }
+}
+
+/* ── Открыть форму попапа ────────────────────── */
+function openMarkPopup(latlng) {
+  pendingMarkLatLng = latlng;
+
+  const pt  = map.latLngToContainerPoint(latlng);
+  const mcr = map.getContainer().getBoundingClientRect();
+  const popup = document.getElementById('mark-popup');
+  const inner = document.getElementById('mfp-inner');
+
+  popup.style.display = 'block';
+  popup.style.left = '0px';
+  popup.style.top  = '0px';
+
+  const pw = inner.offsetWidth  || 290;
+  const ph = inner.offsetHeight || 360;
+  const margin = 12;
+
+  let x = mcr.left + pt.x - pw / 2;
+  let y = mcr.top  + pt.y - ph - 18;
+  if (x < margin) x = margin;
+  if (x + pw > window.innerWidth - margin) x = window.innerWidth - pw - margin;
+  if (y < margin) y = mcr.top + pt.y + 18;
+
+  popup.style.left = x + 'px';
+  popup.style.top  = (window.scrollY + y) + 'px';
+
+  // Координаты в СК-42
+  const sk = formatSK42(latlng.lat, latlng.lng);
+  document.getElementById('mfp-coords-display').innerHTML =
+    `<span style="color:#f97316;letter-spacing:.02em;">СК&#8209;42</span>&nbsp;&nbsp;${sk.str}`;
+
+  // Сброс формы
+  document.getElementById('mfp-name').value = '';
+  document.getElementById('mfp-info').value = '';
+  document.querySelector('input[name="mfp-prio"][value="med"]').checked = true;
+  document.querySelectorAll('.mfp-type-btn').forEach(b => b.classList.remove('active'));
+  selectedMarkType = null;
+  mfpClearFiles();
+  mfpSetupDropzone();
+
+  setTimeout(() => document.getElementById('mfp-name').focus(), 80);
+}
+
+function closeMarkPopup() {
+  document.getElementById('mark-popup').style.display = 'none';
+  pendingMarkLatLng = null;
+}
+
+function cancelMark() { closeMarkPopup(); }
+
+function selectMarkType(btn) {
+  document.querySelectorAll('.mfp-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedMarkType = { type: btn.dataset.type, color: btn.dataset.color, label: btn.textContent.trim() };
+}
+
+function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, ts, attachUrls) {
+  const prioColor = PRIO_COLORS[prio] || '#f59e0b';
+  const prioLabel = PRIO_LABELS[prio] || prio;
+  let attachHtml = '';
+  if (attachUrls && attachUrls.length) {
+    const thumbs = attachUrls.map(u => {
+      const isVideo = /\.(mp4|webm|mov|mkv)$/i.test(u);
+      return isVideo
+        ? `<video src="${u}" style="width:60px;height:46px;object-fit:cover;border:1px solid rgba(249,115,22,.25);" muted></video>`
+        : `<img src="${u}" style="width:60px;height:46px;object-fit:cover;border:1px solid rgba(249,115,22,.25);">`;
+    }).join('');
+    attachHtml = `<div class="pop-row" style="border-top:1px solid #1e293b;padding-top:5px;margin-top:3px;flex-wrap:wrap;gap:3px;">${thumbs}</div>`;
+  }
+  const m = L.marker([lat, lng], { icon: makeCustomMarkerIcon(color) })
+    .addTo(map)
+    .bindPopup(`
+      <div class="pop-inner" style="min-width:220px;">
+        <div class="pop-title" style="color:${color};">${name}</div>
+        <div class="pop-row"><span class="pop-lbl">Тип:</span><span class="pop-val">${typeLabel}</span></div>
+        <div class="pop-row"><span class="pop-lbl">Приоритет:</span><span class="pop-val" style="color:${prioColor};font-weight:700;">${prioLabel}</span></div>
+        <div class="pop-row" style="border-top:1px solid #1e293b;padding-top:5px;margin-top:3px;">
+          <span class="pop-lbl" style="color:#f97316;font-size:9px;letter-spacing:.07em;">СК-42</span>
+        </div>
+        <div class="pop-row"><span class="pop-lbl">X (север):</span><span class="pop-val" style="font-weight:600;">${String(sk.X).replace(/\B(?=(\d{3})+(?!\d))/g,'\u202f')}</span></div>
+        <div class="pop-row"><span class="pop-lbl">Y (восток):</span><span class="pop-val" style="font-weight:600;">${String(sk.Y).replace(/\B(?=(\d{3})+(?!\d))/g,'\u202f')}</span></div>
+        <div class="pop-row"><span class="pop-lbl">Зона:</span><span class="pop-val">${sk.zone}</span></div>
+        <div class="pop-row" style="border-top:1px solid #1e293b;padding-top:5px;margin-top:3px;">
+          <span class="pop-lbl">Инфо:</span><span class="pop-val" style="max-width:130px;white-space:normal;text-align:right;">${info}</span>
+        </div>
+        <div class="pop-row"><span class="pop-lbl">Добавлено:</span><span class="pop-val">${ts}</span></div>
+        ${attachHtml}
+        <div class="pop-btns">
+          <button class="pop-btn pop-btn-red" onclick="destroyMarker('${mid}')">УНИЧТОЖЕНО</button>
+          <button class="pop-btn" onclick="map.closePopup()">СКРЫТЬ</button>
+        </div>
+      </div>
+    `, { className:'lf-popup', closeButton:true, maxWidth:300 });
+  markerRefs[mid] = m;
+  return m;
+}
+
+async function confirmMark() {
+  if (!pendingMarkLatLng) return;
+
+  const name      = document.getElementById('mfp-name').value.trim() || 'Метка';
+  const info      = document.getElementById('mfp-info').value.trim() || '—';
+  const prio      = document.querySelector('input[name="mfp-prio"]:checked')?.value || 'med';
+  const color     = selectedMarkType ? selectedMarkType.color : '#f97316';
+  const typeLabel = selectedMarkType ? selectedMarkType.label : '—';
+  const typeKey   = selectedMarkType ? selectedMarkType.type  : '';
+  const ts        = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
+  const sk        = formatSK42(pendingMarkLatLng.lat, pendingMarkLatLng.lng);
+
+  // Сохраняем вложения до очистки
+  const attachments = mfpFiles.slice();
+  closeMarkPopup();
+
+  // Загрузить файлы на сервер
+  const attachUrls = [];
+  for (const a of attachments) {
+    try {
+      const fd = new FormData();
+      fd.append('file', a.file);
+      const res = await fetch('/api/uploads', { method: 'POST', body: fd });
+      if (res.ok) {
+        const j = await res.json();
+        attachUrls.push(j.url);
+      }
+    } catch (_) {}
+  }
+
+  // Сохранить маркер на сервер
+  let markerId = 'local_' + Date.now();
+  try {
+    const res = await fetch('/api/markers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lat: pendingMarkLatLng.lat,
+        lng: pendingMarkLatLng.lng,
+        name, type: typeKey, color, priority: prio,
+        info: info === '—' ? '' : info,
+        coords_x: sk.X, coords_y: sk.Y, zone: sk.zone,
+      }),
+    });
+    if (res.ok) {
+      const j = await res.json();
+      markerId = j.id;
+    }
+  } catch (_) {}
+
+  addMarkerToMap(markerId, pendingMarkLatLng.lat, pendingMarkLatLng.lng,
+    name, color, typeLabel, prio, info, sk, ts, attachUrls).openPopup();
+}
+
+/* Загрузить маркеры с сервера при старте */
+async function loadMarkersFromServer() {
+  try {
+    const res = await fetch('/api/markers');
+    if (!res.ok) return;
+    const markers = await res.json();
+    const TYPE_LABELS = {
+      tech:'Техника', infantry:'Живая сила', reb:'РЭБ', arty:'Арт-позиция',
+      agro:'Агро-дроны', 'enemy-eq':'Обор. противника', delivery:'Доставка пехоте'
+    };
+    for (const m of markers) {
+      if (markerRefs[m.id]) continue; // уже на карте (TARGETS)
+      const sk = { X: m.coords_x, Y: m.coords_y, zone: m.zone };
+      const typeLabel = TYPE_LABELS[m.type] || m.type || '—';
+      addMarkerToMap(m.id, m.lat, m.lng, m.name, m.color || '#f97316',
+        typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', []);
+    }
+  } catch (_) {}
+}
+loadMarkersFromServer();
+
+/* Клик по карте — открыть форму */
+map.on('click', function(e) {
+  if (!markMode || rulerActive) return;
+  L.DomEvent.stopPropagation(e);
+  openMarkPopup(e.latlng);
+});
+
+// mark-popup Escape handled in master keydown listener
+
+/* ═══════════════════════════════════════════
+   CHAT
+═══════════════════════════════════════════ */
+let _chatLastId = 0; // последний известный id сообщения
+
+function renderChatRow(msg) {
+  const roleClass = msg.role === 'self' ? 'chat-user-self'
+    : msg.role === 'cmd' ? 'chat-user-cmd' : 'chat-user-other';
+  const row = document.createElement('div');
+  row.className = 'chat-row';
+  // Экранируем текст
+  const safeUser = msg.user.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const safeText = msg.text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  row.innerHTML = `<span class="chat-ts">${msg.ts}</span> <span class="${roleClass}">${safeUser}:</span> <span class="chat-text">${safeText}</span>`;
+  return row;
+}
+
+async function loadChatHistory() {
+  try {
+    const res = await fetch('/api/chat?limit=60');
+    if (!res.ok) return;
+    const msgs = await res.json();
+    const container = document.getElementById('chat-messages');
+    const end = document.getElementById('chat-end');
+    msgs.forEach(msg => {
+      if (msg.id && msg.id > _chatLastId) _chatLastId = msg.id;
+      container.insertBefore(renderChatRow(msg), end);
+    });
+    end.scrollIntoView();
+  } catch (_) {}
+}
+
+async function pollChat() {
+  try {
+    const res = await fetch('/api/chat?limit=20');
+    if (!res.ok) return;
+    const msgs = await res.json();
+    const container = document.getElementById('chat-messages');
+    const end = document.getElementById('chat-end');
+    let hasNew = false;
+    msgs.forEach(msg => {
+      const id = msg.id || 0;
+      if (id > _chatLastId) {
+        _chatLastId = id;
+        container.insertBefore(renderChatRow(msg), end);
+        hasNew = true;
+      }
+    });
+    if (hasNew) end.scrollIntoView({ behavior: 'smooth' });
+  } catch (_) {}
+}
+
+async function sendMsg() {
+  const inp = document.getElementById('chat-input');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  const t = new Date().toTimeString().slice(0, 5);
+  try {
+    await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: txt, ts: t, user: 'Вы', role: 'self' }),
+    });
+    await pollChat();
+  } catch (_) {
+    // Показать сообщение локально если сервер недоступен
+    const container = document.getElementById('chat-messages');
+    const end = document.getElementById('chat-end');
+    container.insertBefore(renderChatRow({ ts: t, user: 'Вы', role: 'self', text: txt, id: 0 }), end);
+    end.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+// Загрузить историю и запустить поллинг
+loadChatHistory();
+setInterval(pollChat, 5000);
+
+/* ═══════════════════════════════════════════
+   LEADERBOARD DATA & LOGIC
+═══════════════════════════════════════════ */
+(function() {
+
+// ── Seed data ─────────────────────────────────────────────────────
+const UNITS = ['1-й ДШБ','2-й ДШБ','3-й ДШБ','4-й ДШБ','ШСБ «Гром»','ШСБ «Шторм»','ОРБ «Рысь»','ОРБ «Коршун»','ТГ «Сталь»','ТГ «Бастион»'];
+const CALLSIGNS = [
+  'Коршун','Рысь','Сапёр','Призрак','Шторм','Барс','Кречет','Волк','Дрозд','Тень',
+  'Аркан','Сокол','Булат','Гром','Стриж','Ястреб','Сирена','Клин','Броня','Кедр'
+];
+
+function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function seeded(s,a,b){
+  let h=s*2654435761>>>0; h^=h>>17; h*=0x45d9f3b; h&=0xffffffff;
+  return a+Math.abs(h)%(b-a+1);
+}
+
+// Build full dataset once
+// Scoring: tech=5, infantry=3, comms=2, agro=2.5, delivery=1, pos_fpv=1, pos_wing=2.5, queue=-5
+const PILOTS_FULL = CALLSIGNS.map((call, i) => {
+  const flights_week  = seeded(i*7+1, 12, 95);
+  const flights_month = flights_week + seeded(i*7+2, 20, 180);
+  const flights_all   = flights_month + seeded(i*7+3, 40, 320);
+
+  function makeRow(flights) {
+    const tech     = seeded(i*11+4,  0, Math.floor(flights*0.35));  // Техника (танк/бтр/арт/рсзо) ×5
+    const infantry = seeded(i*11+5,  0, Math.floor(flights*0.45));  // Пехота ×3
+    const comms    = seeded(i*11+6,  0, Math.floor(flights*0.15));  // Обор.связи ×2
+    const agro     = seeded(i*11+7,  0, Math.floor(flights*0.3));   // Агро/крыло ×2.5
+    const delivery = seeded(i*11+8,  0, Math.floor(flights*0.2));   // Доставка ×1
+    const pos_fpv  = seeded(i*11+9,  0, Math.floor(flights*0.4));   // Позиция(ФПВ) ×1
+    const pos_wing = seeded(i*11+10, 0, Math.floor(flights*0.15));  // Позиция(крыло) ×2.5
+    const queue    = seeded(i*11+11, 0, Math.floor(flights*0.05));  // Нарушения ×-5
+    const total    = tech + infantry + comms + agro + delivery + pos_fpv + pos_wing;
+    const score    = Math.round(
+      tech*5 + infantry*3 + comms*2 + agro*2.5 +
+      delivery*1 + pos_fpv*1 + pos_wing*2.5 - queue*5
+    );
+    const eff = flights > 0 ? Math.round((total / flights) * 100) : 0;
+    return { tech, infantry, comms, agro, delivery, pos_fpv, pos_wing, queue, total, score, eff, flights };
+  }
+
+  return {
+    call,
+    unit: UNITS[seeded(i*3, 0, UNITS.length-1)],
+    trend: ['+2','-1','=','+4','-2','+1','=','+3','-3','+5','-1','+2','=','-4','+1','+6','-2','+3','=','-1'][i],
+    week:  makeRow(flights_week),
+    month: makeRow(flights_month),
+    all:   makeRow(flights_all)
+  };
+});
+
+// ── State ──────────────────────────────────────────────────────────
+let lbPeriod  = 'week';
+let lbSortKey = 'score';
+window.lbSortKey = lbSortKey; // expose for header click
+
+// ── Helpers ────────────────────────────────────────────────────────
+function effColor(e) {
+  if (e >= 75) return '#10b981';
+  if (e >= 50) return '#f59e0b';
+  if (e >= 25) return '#f97316';
+  return '#ef4444';
+}
+function trendHtml(t) {
+  if (t.startsWith('+')) return `<span class="lb-trend lb-trend-up">▲${t.slice(1)}</span>`;
+  if (t.startsWith('-')) return `<span class="lb-trend lb-trend-dn">▼${t.slice(1)}</span>`;
+  return `<span class="lb-trend lb-trend-same">—</span>`;
+}
+function rankClass(r) {
+  return r===1?'lb-rank-1':r===2?'lb-rank-2':r===3?'lb-rank-3':'lb-rank-n';
+}
+function rankEmoji(r) { return r===1?'🥇':r===2?'🥈':r===3?'🥉':''; }
+
+function getSorted() {
+  const search = (document.getElementById('lb-search')?.value||'').trim().toLowerCase();
+  const key    = document.getElementById('lb-sort')?.value || lbSortKey;
+  lbSortKey    = key;
+
+  return [...PILOTS_FULL]
+    .filter(p => !search || p.call.toLowerCase().includes(search) || p.unit.toLowerCase().includes(search))
+    .sort((a,b) => b[lbPeriod][key] - a[lbPeriod][key])
+    .slice(0, 20);
+}
+
+// ── Podium ─────────────────────────────────────────────────────────
+function renderPodium(sorted) {
+  const pod = document.getElementById('lb-podium');
+  if (!pod) return;
+  // order: 2nd | 1st | 3rd
+  const order = [1, 0, 2];
+  pod.innerHTML = order.map(idx => {
+    const p = sorted[idx];
+    if (!p) return '<div></div>';
+    const d = p[lbPeriod];
+    const rank = idx + 1;
+    const numColor = rank===1?'#fbbf24':rank===2?'#94a3b8':'#c2824a';
+    const borderCol = rank===1?'rgba(251,191,36,.45)':rank===2?'rgba(148,163,184,.25)':'rgba(194,130,74,.35)';
+    return `<div class="lb-podium-card" style="border-color:${borderCol};${rank===1?'transform:scale(1.03);':''}">
+      <div class="lb-podium-num" style="color:${numColor};">${rankEmoji(rank)}</div>
+      <div class="lb-podium-call">${p.call}</div>
+      <div class="lb-podium-unit">${p.unit}</div>
+      <div class="lb-podium-score">${d.score.toLocaleString()}</div>
+      <div class="lb-podium-score-lbl">очков</div>
+      <div class="lb-podium-stats">
+        <div class="lb-podium-stat"><span class="lb-podium-stat-val" style="color:#ef4444;">${d.tech}</span><span class="lb-podium-stat-lbl">Техника</span></div>
+        <div class="lb-podium-stat"><span class="lb-podium-stat-val" style="color:#84cc16;">${d.infantry}</span><span class="lb-podium-stat-lbl">Пехота</span></div>
+        <div class="lb-podium-stat"><span class="lb-podium-stat-val" style="color:#06b6d4;">${d.agro}</span><span class="lb-podium-stat-lbl">Агро/крыло</span></div>
+        <div class="lb-podium-stat"><span class="lb-podium-stat-val" style="color:#38bdf8;">${d.delivery}</span><span class="lb-podium-stat-lbl">Доставка</span></div>
+        <div class="lb-podium-stat"><span class="lb-podium-stat-val" style="color:${effColor(d.eff)};">${d.eff}%</span><span class="lb-podium-stat-lbl">Эффект.</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Table ──────────────────────────────────────────────────────────
+window.renderLbTable = function() {
+  const sorted = getSorted();
+  renderPodium(sorted);
+
+  // Update sort column highlight
+  document.querySelectorAll('.lb-table th').forEach(th => th.classList.remove('lb-sort-col'));
+  const sortSel = document.getElementById('lb-sort');
+  const curKey  = sortSel ? sortSel.value : lbSortKey;
+
+  const tbody = document.getElementById('lb-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = sorted.map((p, i) => {
+    const rank = i + 1;
+    const d    = p[lbPeriod];
+    const rowCls = rank===1?'lb-row-1':rank===2?'lb-row-2':rank===3?'lb-row-3':'';
+    const rankEl = rank<=3
+      ? `<td class="lb-rank ${rankClass(rank)}">${rank}</td>`
+      : `<td class="lb-rank lb-rank-n">${rank}</td>`;
+
+    const effW = Math.min(d.eff, 100);
+    const effC = effColor(d.eff);
+
+    const queueHtml = d.queue > 0
+      ? `<span style="font-weight:700;color:#ef4444;">-${d.queue}</span>`
+      : `<span style="color:#334155;">0</span>`;
+    return `<tr class="${rowCls}">
+      ${rankEl}
+      <td class="lb-td-callsign">${p.call}</td>
+      <td class="lb-td-unit">${p.unit}</td>
+      <td class="lb-td-score">${d.score.toLocaleString()}</td>
+      <td class="lb-td-num" style="font-weight:700;color:#cbd5e1;">${d.total}</td>
+      <td class="lb-td-tech"><span style="font-weight:700;color:#ef4444;">${d.tech}</span></td>
+      <td class="lb-td-pos"><span style="font-weight:700;color:#84cc16;">${d.infantry}</span></td>
+      <td class="lb-td-reb"><span style="font-weight:700;color:#06b6d4;">${d.agro}</span></td>
+      <td class="lb-td-agro"><span style="font-weight:700;color:#38bdf8;">${d.delivery}</span></td>
+      <td class="lb-td-num">${queueHtml}</td>
+      <td>
+        <div class="lb-eff-wrap">
+          <div class="lb-eff-bar-bg"><div class="lb-eff-bar" style="width:${effW}%;background:${effC};"></div></div>
+          <span class="lb-eff-val" style="color:${effC};">${d.eff}%</span>
+        </div>
+      </td>
+      <td class="lb-td-num">${d.flights}</td>
+      <td>${trendHtml(p.trend)}</td>
+    </tr>`;
+  }).join('');
+};
+
+window.setLbPeriod = function(period, btn) {
+  lbPeriod = period;
+  document.querySelectorAll('.lb-period-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderLbTable();
+};
+
+window.setSortAndRender = function(key) {
+  const sel = document.getElementById('lb-sort');
+  if (sel) sel.value = key;
+  lbSortKey = key;
+  renderLbTable();
+};
+
+window.openLeaderboard = function() {
+  closeMarkPopup();
+  document.getElementById('lb-overlay').style.display = 'block';
+  document.getElementById('lb-overlay').scrollTop = 0;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => {
+    if (el.textContent.trim() === 'Лидерборд') el.classList.add('active');
+  });
+  const t = new Date().toISOString().slice(11,19) + ' UTC';
+  const el = document.getElementById('lb-update-time');
+  if (el) el.textContent = t;
+  renderLbTable();
+};
+
+window.closeLeaderboard = function() {
+  document.getElementById('lb-overlay').style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector('.nav-item').classList.add('active');
+};
+
+})(); // end IIFE
+
+/* ═══════════════════════════════════════════
+   SUPPORT PAGE
+═══════════════════════════════════════════ */
+const supFiles = []; // {file, url, type}
+let supReports = [];
+let supReportSeq = 1000;
+
+function openSupport() {
+  closeMarkPopup();
+  document.getElementById('support-overlay').style.display = 'block';
+  document.getElementById('support-overlay').scrollTop = 0;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => {
+    if (el.textContent.trim() === 'Техподдержка') el.classList.add('active');
+  });
+  // fill sysinfo
+  fillSysInfo();
+  // load and render reports from server
+  loadReportsFromServer();
+  // setup drag-drop
+  setupDropzone();
+  // title counter
+  const titleEl = document.getElementById('bug-title');
+  if (titleEl && !titleEl._supInit) {
+    titleEl._supInit = true;
+    titleEl.addEventListener('input', () => {
+      document.getElementById('bug-title-count').textContent = titleEl.value.length + ' / 80';
+    });
+  }
+}
+function closeSupport() {
+  document.getElementById('support-overlay').style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector('.nav-item').classList.add('active');
+}
+
+function fillSysInfo() {
+  const ua = navigator.userAgent;
+  const browser = ua.includes('Firefox') ? 'Firefox'
+    : ua.includes('Edg') ? 'Edge'
+    : ua.includes('Chrome') ? 'Chrome'
+    : ua.includes('Safari') ? 'Safari' : 'Unknown';
+  const os = ua.includes('Windows') ? 'Windows'
+    : ua.includes('Mac') ? 'macOS'
+    : ua.includes('Linux') ? 'Linux'
+    : ua.includes('Android') ? 'Android'
+    : ua.includes('iOS') ? 'iOS' : 'Unknown';
+  const w = window.innerWidth, h = window.innerHeight;
+  const ts = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
+  document.getElementById('bug-sysinfo').innerHTML =
+    `Browser: ${browser} &nbsp;·&nbsp; OS: ${os} &nbsp;·&nbsp; Viewport: ${w}×${h}px<br>
+     URL: ${location.href.length > 60 ? location.href.slice(0,60)+'…' : location.href} &nbsp;·&nbsp; Время: ${ts}`;
+}
+
+/* Drag & drop */
+function setupDropzone() {
+  const dz = document.getElementById('sup-dropzone');
+  if (dz._supDZ) return;
+  dz._supDZ = true;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    handleFileSelect(e.dataTransfer.files);
+  });
+}
+
+function handleFileSelect(files) {
+  const allowed = ['image/png','image/jpeg','image/gif','image/webp','video/mp4','video/quicktime','video/webm','video/x-matroska'];
+  for (const f of files) {
+    if (supFiles.length >= 5) { showFormMsg('Максимум 5 файлов', 'warn'); break; }
+    if (!allowed.includes(f.type)) { showFormMsg(`${f.name}: неподдерживаемый формат`, 'warn'); continue; }
+    if (f.size > 25 * 1024 * 1024) { showFormMsg(`${f.name}: файл > 25 МБ`, 'warn'); continue; }
+    const url = URL.createObjectURL(f);
+    const isVideo = f.type.startsWith('video/');
+    supFiles.push({ file: f, url, isVideo });
+  }
+  renderPreviews();
+}
+
+function renderPreviews() {
+  const grid = document.getElementById('sup-preview-grid');
+  grid.innerHTML = '';
+  supFiles.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'sup-preview-item';
+    const media = item.isVideo
+      ? `<video src="${item.url}" muted></video>`
+      : `<img src="${item.url}" alt="">`;
+    const ext = item.file.name.split('.').pop().toUpperCase();
+    div.innerHTML = `${media}
+      <button class="sup-preview-remove" onclick="removeFile(${i})" title="Удалить">✕</button>
+      <span class="sup-preview-type">${ext}</span>`;
+    grid.appendChild(div);
+  });
+}
+
+function removeFile(i) {
+  URL.revokeObjectURL(supFiles[i].url);
+  supFiles.splice(i, 1);
+  renderPreviews();
+}
+
+/* Submit */
+async function submitBugReport() {
+  const category = document.getElementById('bug-category').value;
+  const title    = document.getElementById('bug-title').value.trim();
+  const desc     = document.getElementById('bug-desc').value.trim();
+  const prio     = document.querySelector('input[name="bug-prio"]:checked')?.value || 'med';
+  const callsign = document.getElementById('bug-callsign').value.trim();
+  const contact  = document.getElementById('bug-contact').value.trim();
+  const steps    = document.getElementById('bug-steps').value.trim();
+  const sysinfo  = document.getElementById('bug-sysinfo').innerText || '';
+
+  if (!category) { showFormMsg('Выберите категорию', 'err'); return; }
+  if (!title)    { showFormMsg('Введите заголовок', 'err'); return; }
+  if (!desc)     { showFormMsg('Добавьте описание проблемы', 'err'); return; }
+
+  const btn = document.getElementById('sup-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> ОТПРАВКА...`;
+
+  // Загрузить файлы
+  const filesCount = supFiles.length;
+  for (const f of supFiles) {
+    try {
+      const fd = new FormData();
+      fd.append('file', f.file);
+      await fetch('/api/uploads', { method: 'POST', body: fd });
+    } catch (_) {}
+  }
+
+  const catMap = {map:'Карта',freq:'Частоты',chat:'Чат',ruler:'Линейка',auth:'Авторизация',perf:'Производительность',ui:'Интерфейс',queue:'Занятие канала без очереди',other:'Другое'};
+
+  try {
+    const res = await fetch('/api/reports', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, category, priority: prio, description: desc, steps, callsign, contact, sysinfo, files_count: filesCount }),
+    });
+    if (res.ok) {
+      const j = await res.json();
+      await loadReportsFromServer();
+      showFormMsg(`✓ Репорт ${j.id} отправлен`, 'ok');
+    } else {
+      showFormMsg('Ошибка сервера', 'err');
+    }
+  } catch (_) {
+    // Офлайн-фолбэк
+    const id = '#' + (++supReportSeq);
+    const ts = new Date().toISOString().replace('T',' ').slice(0,16) + ' UTC';
+    supReports.unshift({ id, ts, title, prio, category: catMap[category] || category, files_count: filesCount, callsign, contact, created_at: ts });
+    renderReports();
+    showFormMsg(`✓ Репорт ${id} сохранён локально`, 'ok');
+  }
+
+  resetBugForm();
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> ОТПРАВИТЬ РЕПОРТ`;
+}
+
+function resetBugForm() {
+  document.getElementById('bug-category').value = '';
+  document.getElementById('bug-title').value = '';
+  document.getElementById('bug-title-count').textContent = '0 / 80';
+  document.getElementById('bug-desc').value = '';
+  document.getElementById('bug-steps').value = '';
+  document.getElementById('bug-callsign').value = '';
+  document.getElementById('bug-contact').value = '';
+  document.querySelector('input[name="bug-prio"][value="med"]').checked = true;
+  supFiles.forEach(f => URL.revokeObjectURL(f.url));
+  supFiles.length = 0;
+  renderPreviews();
+}
+
+function showFormMsg(text, type) {
+  const el = document.getElementById('sup-form-msg');
+  el.textContent = text;
+  el.style.color = type === 'ok' ? '#10b981' : type === 'warn' ? '#f59e0b' : '#ef4444';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = ''; }, 4000);
+}
+
+function renderReports() {
+  const list = document.getElementById('sup-reports-list');
+  if (!supReports.length) {
+    list.innerHTML = `<div style="padding:18px;text-align:center;font-size:11px;color:#334155;letter-spacing:.05em;">— Нет отправленных репортов —</div>`;
+    return;
+  }
+  const prioLabel = { low:'НИЗКИЙ', med:'СРЕДНИЙ', high:'ВЫСОКИЙ', crit:'КРИТ' };
+  const catMap = {map:'Карта',freq:'Частоты',chat:'Чат',ruler:'Линейка',auth:'Авторизация',perf:'Производительность',ui:'Интерфейс',queue:'Занятие канала без очереди',other:'Другое'};
+  list.innerHTML = supReports.map(r => {
+    const prio = r.priority || r.prio || 'med';
+    const cat  = catMap[r.category] || r.category || '—';
+    const ts   = (r.created_at || r.ts || '').replace('T',' ').slice(0,16) + (r.created_at ? ' UTC' : '');
+    const fc   = r.files_count || r.files || 0;
+    return `<div class="sup-report-row">
+      <span class="sup-report-id">${r.id}</span>
+      <div class="sup-report-body">
+        <div class="sup-report-title">${r.title}</div>
+        <div class="sup-report-meta">
+          <span>${ts}</span>
+          <span>${cat}</span>
+          ${r.callsign ? `<span>[ ${r.callsign} ]</span>` : ''}
+          ${fc ? `<span>📎 ${fc}</span>` : ''}
+          <span class="sup-report-badge badge-${prio}">${prioLabel[prio] || prio}</span>
+        </div>
+      </div>
+      <span class="sup-report-status">ОТПРАВЛЕН</span>
+    </div>`;
+  }).join('');
+}
+
+async function loadReportsFromServer() {
+  try {
+    const res = await fetch('/api/reports');
+    if (!res.ok) return;
+    supReports = await res.json();
+    renderReports();
+  } catch (_) {}
+}
+
+/* spin animation for submit btn */
+(function(){
+  const s = document.createElement('style');
+  s.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+  document.head.appendChild(s);
+})();
+
+/* ═══════════════════════════════════════════
+   NEWS DATA
+═══════════════════════════════════════════ */
+const NEWS = [
+  {
+    id: 1,
+    badge: 'Боевой опыт',
+    date: '23 февраля 2026 · 14:32 UTC',
+    title: 'Успешное применение FPV-дронов в ночных условиях: разбор тактики',
+    mediaType: 'image',
+    mediaSrc: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=900&q=80',
+    excerpt: 'Операторы 4-й группы провели серию ночных вылетов с применением тепловизионных модулей. Анализ 47 успешных поражений показал ключевые факторы эффективности при нулевой видимости.',
+    body: `Ночные операции с FPV-дронами требуют принципиально иного подхода к навигации и прицеливанию. Операторы 4-й группы за последние две недели накопили значительный опыт, который мы разбираем в этом материале.
+
+Основные выводы:
+
+1. Тепловизионный модуль FLIR Vue Pro R даёт преимущество на дистанциях до 300 метров — дальше сигнатура цели сливается с фоном. Оптимальная высота атаки: 15–25 м.
+
+2. Предполётная калибровка сенсора в течение 8–10 минут критически важна для чёткого контраста. Без неё потери точности достигают 40%.
+
+3. Парный вылет — один FPV атакует, второй обеспечивает разведку с высоты 60–80 м — увеличил процент поражения с первой попытки с 61% до 84%.
+
+4. Ветер свыше 7 м/с делает ночную работу нецелесообразной: шум пропеллеров снижается, но управляемость падает критически.
+
+Следующий этап — отработка координации через PULSE в режиме реального времени с передачей тепловых меток на карту сектора.`,
+    gallery: [
+      'https://images.unsplash.com/photo-1569244941896-5a35e74f3e48?w=600&q=80',
+      'https://images.unsplash.com/photo-1579829366248-204fe8413f31?w=600&q=80',
+    ]
+  },
+  {
+    id: 2,
+    badge: 'Обновление',
+    date: '22 февраля 2026 · 09:15 UTC',
+    title: 'PULSE 2.4: новый модуль таблицы частот и улучшенная карта',
+    mediaType: 'image',
+    mediaSrc: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80',
+    excerpt: 'Вышло крупное обновление боевого хаба. Переработана таблица частот с автоматическим освобождением через 20 минут, добавлены зоны РЭБ на карте и улучшен интерфейс меток.',
+    body: `Обновление PULSE 2.4 фокусируется на трёх ключевых улучшениях, запрошенных операторами в ходе полевых испытаний.
+
+Таблица частот:
+— Автоматическое освобождение канала через 20 минут неактивности
+— Цветовая индикация загрузки: свободно / занято / максимум
+— Правая кнопка мыши для бронирования без занятия
+— Двойной клик — мгновенное освобождение
+
+Карта сектора:
+— Интеграция спутниковой подложки Google в реальном времени
+— Отображение зон союзного РЭБ с радиусом подавления
+— Линейка с точным измерением расстояний в метрах и километрах
+— Настраиваемые маркеры с всплывающими карточками целей
+
+Боевой чат:
+— Kill Feed с фиксацией координат поражений
+— Персистентный журнал за текущую сессию
+— Цветовое разграничение ролей: командир / оператор / союзник
+
+Следующая версия 2.5 добавит голосовые уведомления о новых метках и экспорт журнала в формате CSV.`,
+    gallery: [
+      'https://images.unsplash.com/photo-1551808525-51a94da548ce?w=600&q=80',
+    ]
+  },
+  {
+    id: 3,
+    badge: 'Аналитика',
+    date: '20 февраля 2026 · 17:48 UTC',
+    title: 'РЭБ-противодействие: статистика за февраль и выводы по частотным диапазонам',
+    mediaType: 'video',
+    mediaSrc: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    excerpt: 'За февраль зафиксировано 312 случаев подавления сигнала. Анализ показывает сдвиг вражеского РЭБ в диапазон 5.1–5.3 ГГц. Рекомендации по перенастройке оборудования.',
+    body: `Февраль стал рекордным по интенсивности применения средств радиоэлектронной борьбы с обеих сторон. Аналитический отдел обработал данные 312 зафиксированных случаев подавления.
+
+Ключевые наблюдения:
+
+Диапазон 5.1–5.3 ГГц стал основным вектором подавления — 67% всех инцидентов. Рекомендуем временно перейти на 5.7–5.9 ГГц для видеотрансляции и 2.4 ГГц с frequency hopping для управления.
+
+Зоны наибольшей активности РЭБ коррелируют с дорогами снабжения противника. Карта горячих точек обновлена в системе PULSE — смотрите зоны фиолетового цвета.
+
+Эффективность союзного РЭБ:
+— Радиус реального подавления при мощности 20 Вт: 80–120 м (а не заявленные 200 м)
+— Оптимальная высота размещения антенны: 4–6 м над уровнем земли
+— Наибольший эффект при угловом перекрытии 270° сектора
+
+Следующий брифинг по РЭБ — 28 февраля в 18:00 UTC.`,
+    gallery: [
+      'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80',
+      'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80',
+      'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80',
+    ]
+  },
+  {
+    id: 4,
+    badge: 'Инструкция',
+    date: '18 февраля 2026 · 11:20 UTC',
+    title: 'Координатная сетка СК-42: как правильно передавать целеуказание через PULSE',
+    mediaType: 'image',
+    mediaSrc: 'https://images.unsplash.com/photo-1569144157591-c60f3f82f137?w=900&q=80',
+    excerpt: 'Разбираем типичные ошибки при передаче координат в системе СК-42. Правильный формат X/Y, точность до метра, согласование с Leaflet-картой в боевом хабе.',
+    body: `Передача координат — один из критических навыков, где ошибки недопустимы. Разбираем типичные проблемы и стандарт, принятый в системе PULSE.
+
+Формат передачи координат СК-42:
+X: [северная проекция, 7 цифр]
+Y: [восточная проекция, 7 цифр]
+
+Пример корректной передачи: X:6412540 · Y:2306120
+
+Частые ошибки:
+1. Перепутаны X и Y — X всегда северная компонента
+2. Округление до 10 метров при работе FPV — недопустимо, нужна точность до 1 м
+3. Копирование координат из Google Maps (WGS-84) без конвертации в СК-42
+
+Конвертация в PULSE:
+На карте в режиме метки система автоматически отображает координаты в WGS-84. Для получения СК-42 используйте встроенный калькулятор (кнопка «СК-42» в тулбаре — появится в версии 2.5).
+
+До выхода 2.5 пользуйтесь онлайн-конвертером или офлайн-таблицами для вашего района операций.`,
+    gallery: []
+  },
+];
+
+/* ═══════════════════════════════════════════
+   NEWS RENDER
+═══════════════════════════════════════════ */
+function renderNewsList() {
+  const list = document.getElementById('news-list');
+  list.innerHTML = NEWS.map(n => {
+    const media = n.mediaType === 'video'
+      ? `<iframe class="news-card-media-video" src="${n.mediaSrc}" frameborder="0" allowfullscreen title="${n.title}"></iframe>`
+      : `<img class="news-card-media" src="${n.mediaSrc}" alt="${n.title}" loading="lazy">`;
+    return `<div class="news-card">
+      ${media}
+      <div class="news-card-body">
+        <div class="news-card-meta">
+          <span class="news-card-date">${n.date}</span>
+          <span class="news-card-badge">${n.badge}</span>
+        </div>
+        <div class="news-card-title">${n.title}</div>
+        <div class="news-card-excerpt">${n.excerpt}</div>
+        <button class="news-card-read" onclick="openArticle(${n.id})">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          Читать полностью
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openArticle(id) {
+  const n = NEWS.find(x => x.id === id);
+  if (!n) return;
+
+  const hero = n.mediaType === 'video'
+    ? `<iframe class="art-hero-video" src="${n.mediaSrc}" frameborder="0" allowfullscreen title="${n.title}"></iframe>`
+    : `<img class="art-hero" src="${n.mediaSrc}" alt="${n.title}">`;
+
+  const galleryCount = n.gallery.length;
+  let galleryHtml = '';
+  if (galleryCount > 0) {
+    const cls = galleryCount === 1 ? 'n1' : galleryCount === 2 ? 'n2' : 'n3';
+    const imgs = n.gallery.map(src =>
+      `<img src="${src}" alt="Фото к статье" loading="lazy" onclick="openLightbox(this.src)">`
+    ).join('');
+    galleryHtml = `<div class="art-gallery-label">// Фотоматериалы (${galleryCount})</div><div class="art-gallery ${cls}">${imgs}</div>`;
+  }
+
+  document.getElementById('news-modal-content').innerHTML = `
+    <div class="art-title">${n.title}</div>
+    <div class="art-meta">
+      <span class="art-date">${n.date}</span>
+      <span class="art-badge">${n.badge}</span>
+    </div>
+    ${hero}
+    <div class="art-body">${n.body}</div>
+    ${galleryHtml}
+  `;
+
+  document.getElementById('news-modal').style.display = 'block';
+  document.getElementById('news-modal').scrollTop = 0;
+}
+
+function closeModal() {
+  document.getElementById('news-modal').style.display = 'none';
+}
+
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+/* ═══════════════════════════════════════════
+   NEWS OVERLAY OPEN / CLOSE
+═══════════════════════════════════════════ */
+function openNews() {
+  closeMarkPopup();
+  renderNewsList();
+  document.getElementById('news-overlay').style.display = 'block';
+  document.getElementById('news-overlay').scrollTop = 0;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => {
+    if (el.textContent.trim() === 'Новости') el.classList.add('active');
+  });
+}
+function closeNews() {
+  document.getElementById('news-overlay').style.display = 'none';
+  document.getElementById('news-modal').style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector('.nav-item').classList.add('active');
+}
+
+/* ═══════════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════════ */
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    if (!res.ok) return;
+    const data = await res.json();
+    const cbs = document.querySelectorAll('.notif-child');
+    cbs.forEach((cb, i) => {
+      const key = 'notif_' + i;
+      if (key in data) cb.checked = data[key] === '1';
+    });
+    const master = document.getElementById('notif-master');
+    if (master) {
+      master.checked = Array.from(document.querySelectorAll('.notif-child')).every(c => c.checked);
+    }
+  } catch (_) {}
+}
+
+function saveSettings() {
+  const payload = {};
+  document.querySelectorAll('.notif-child').forEach((cb, i) => {
+    payload['notif_' + i] = cb.checked ? '1' : '0';
+  });
+  const master = document.getElementById('notif-master');
+  if (master) payload['notif_master'] = master.checked ? '1' : '0';
+  fetch('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
+
+function openSettings() {
+  closeMarkPopup();
+  document.getElementById('settings-overlay').style.display = 'block';
+  loadSettings();
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => {
+    if (el.textContent.trim() === 'Настройки') el.classList.add('active');
+  });
+}
+function closeSettings() {
+  saveSettings();
+  document.getElementById('settings-overlay').style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector('.nav-item').classList.add('active');
+}
+function masterToggle(master) {
+  document.querySelectorAll('.notif-child').forEach(cb => {
+    cb.checked = master.checked;
+  });
+}
+// Close on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (document.getElementById('lightbox').classList.contains('open')) { closeLightbox(); return; }
+    if (document.getElementById('news-modal').style.display === 'block') { closeModal(); return; }
+    if (document.getElementById('news-overlay').style.display === 'block') { closeNews(); return; }
+    if (document.getElementById('lb-overlay').style.display === 'block') { closeLeaderboard(); return; }
+    if (document.getElementById('support-overlay').style.display === 'block') { closeSupport(); return; }
+    if (document.getElementById('settings-overlay').style.display === 'block') { closeSettings(); return; }
+    if (document.getElementById('mark-popup').style.display === 'block') { cancelMark(); return; }
+    if (rulerActive) toggleRuler();
+  }
+});
+</script>
+</body>
+</html>
