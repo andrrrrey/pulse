@@ -118,20 +118,6 @@ def init_db():
                 created_at TEXT NOT NULL,
                 expires_at TEXT DEFAULT ''
             );
-
-            CREATE TABLE IF NOT EXISTS news (
-                id          TEXT PRIMARY KEY,
-                badge       TEXT DEFAULT '',
-                title       TEXT NOT NULL,
-                date        TEXT NOT NULL,
-                excerpt     TEXT DEFAULT '',
-                body        TEXT DEFAULT '',
-                media_type  TEXT DEFAULT 'image',
-                media_src   TEXT DEFAULT '',
-                gallery     TEXT DEFAULT '[]',
-                created_by  TEXT DEFAULT '',
-                created_at  TEXT NOT NULL
-            );
         """)
 
         # Migrate markers table — add new columns if missing
@@ -140,7 +126,6 @@ def init_db():
             "extra       TEXT DEFAULT ''",
             "marker_role TEXT DEFAULT ''",
             "expires_at  TEXT DEFAULT ''",
-            "attachments TEXT DEFAULT '[]'",
         ]:
             col_name = col_def.split()[0]
             try:
