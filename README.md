@@ -111,9 +111,47 @@ pulse/
 ### Требования
 
 - Python 3.9+
-- pip
 
-### Установка и запуск
+### Быстрый запуск (одна команда)
+
+После клонирования репозитория — просто запустите лаунчер:
+
+**Mac / Linux:**
+```bash
+git clone <url-репозитория> && cd pulse
+./start.sh
+```
+
+**Windows:**
+```bat
+git clone <url-репозитория> && cd pulse
+start.bat
+```
+
+**Универсально (любая платформа):**
+```bash
+python start.py
+```
+
+Лаунчер автоматически:
+1. Создаст виртуальное окружение `venv/`
+2. Установит все зависимости из `requirements.txt`
+3. Запустит сервер на **http://localhost:8000**
+4. Откроет браузер
+
+После запуска откройте браузер: **http://localhost:8000**
+
+База данных `pulse.db` и папка `uploads/` создадутся автоматически при первом старте.
+
+#### Опции лаунчера
+
+```bash
+python start.py --port 9000        # другой порт
+python start.py --no-browser       # не открывать браузер автоматически
+python start.py --no-reload        # без автоперезагрузки при изменении файлов
+```
+
+### Ручная установка (альтернатива)
 
 ```bash
 # 1. Клонировать репозиторий
@@ -126,15 +164,11 @@ source venv/bin/activate       # Linux/macOS
 # venv\Scripts\activate        # Windows
 
 # 3. Установить зависимости
-pip install fastapi uvicorn aiofiles
+pip install -r requirements.txt
 
 # 4. Запустить сервер
 uvicorn server:app --host 0.0.0.0 --port 8000 --reload
 ```
-
-После запуска откройте браузер: **http://localhost:8000**
-
-База данных `pulse.db` и папка `uploads/` создадутся автоматически при первом старте.
 
 ---
 
