@@ -151,6 +151,21 @@ python start.py --no-browser       # не открывать браузер ав
 python start.py --no-reload        # без автоперезагрузки при изменении файлов
 ```
 
+### Остановка сервера
+
+Если терминал был закрыт или сервер запущен в фоне:
+
+```bash
+# Через лаунчер (из папки проекта):
+python start.py --stop
+
+# Mac / Linux — напрямую через терминал:
+lsof -ti :8000 | xargs kill
+
+# Windows — напрямую через терминал:
+for /f "tokens=5" %p in ('netstat -ano ^| findstr :8000 ^| findstr LISTENING') do taskkill /F /PID %p
+```
+
 ### Ручная установка (альтернатива)
 
 ```bash
