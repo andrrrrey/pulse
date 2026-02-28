@@ -184,7 +184,8 @@ def add_marker(data: dict):
 
 
 @app.patch("/api/markers/{marker_id}")
-def update_marker(marker_id: str, data: dict):
+def update_marker(marker_id: str, data: dict, authorization: str | None = Header(default=None)):
+    user = require_auth(authorization)
     allowed_fields = {
         "name", "type", "color", "priority", "info",
         "coords_x", "coords_y", "zone", "radius", "extra", "marker_role",
@@ -192,6 +193,10 @@ def update_marker(marker_id: str, data: dict):
     fields = {k: v for k, v in data.items() if k in allowed_fields}
     if not fields:
         raise HTTPException(400, "Нет допустимых полей для обновления")
+    if "radius" in fields and user["role"] not in ("reb", "admin"):
+        raise HTTPException(403, "Изменять радиус РЭБ может только Специалист РЭБ или администратор")
+    if "priority" in fields and user["role"] not in ("commander", "admin"):
+        raise HTTPException(403, "Изменять приоритет метки может только Командир или администратор")
     set_clause = ", ".join(f"{k}=?" for k in fields)
     with get_conn() as db:
         db.execute(
