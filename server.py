@@ -1,16 +1,138 @@
 import os
 import uuid
+import secrets
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import aiofiles
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
-from database import init_db, get_conn
+from database import init_db, get_conn, hash_password
 
 app = FastAPI(title="PULSE API")
+
+
+# ─────────────────────────────────────────────
+#  AUTH HELPERS
+# ─────────────────────────────────────────────
+
+def get_user_from_token(authorization: str | None) -> dict | None:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization[7:]
+    with get_conn() as db:
+        row = db.execute(
+            """SELECT u.id, u.username, u.role, u.callsign
+               FROM sessions s JOIN users u ON s.user_id = u.id
+               WHERE s.token = ?""",
+            (token,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def require_auth(authorization: str | None) -> dict:
+    user = get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(401, "Требуется авторизация")
+    return user
+
+
+# ─────────────────────────────────────────────
+#  AUTH ENDPOINTS
+# ─────────────────────────────────────────────
+
+@app.post("/api/auth/login")
+def login(data: dict):
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    if not username or not password:
+        raise HTTPException(400, "Укажите логин и пароль")
+    phash = hash_password(password)
+    with get_conn() as db:
+        user = db.execute(
+            "SELECT * FROM users WHERE username=? AND password_hash=?",
+            (username, phash),
+        ).fetchone()
+    if not user:
+        raise HTTPException(401, "Неверный логин или пароль")
+    token = secrets.token_hex(32)
+    now = datetime.utcnow().isoformat(timespec="seconds")
+    with get_conn() as db:
+        db.execute(
+            "INSERT INTO sessions (token, user_id, created_at) VALUES (?,?,?)",
+            (token, user["id"], now),
+        )
+    return {
+        "token": token,
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "role": user["role"],
+            "callsign": user["callsign"],
+        },
+    }
+
+
+@app.post("/api/auth/logout")
+def logout(authorization: str | None = Header(None)):
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+        with get_conn() as db:
+            db.execute("DELETE FROM sessions WHERE token=?", (token,))
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+def get_me(authorization: str | None = Header(None)):
+    user = get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(401, "Требуется авторизация")
+    return user
+
+
+# ─────────────────────────────────────────────
+#  NOTIFICATIONS
+# ─────────────────────────────────────────────
+
+@app.get("/api/notifications")
+def get_notifications():
+    now = datetime.utcnow().isoformat(timespec="seconds")
+    with get_conn() as db:
+        rows = db.execute(
+            """SELECT * FROM notifications
+               WHERE expires_at = '' OR expires_at > ?
+               ORDER BY created_at DESC""",
+            (now,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/notifications")
+def create_notification(data: dict):
+    nid = str(uuid.uuid4())[:8]
+    now = datetime.utcnow().isoformat(timespec="seconds")
+    ntype = data.get("type", "info")
+    ndata = data.get("data", "")
+    # expires_in_minutes: 0 = no expiry
+    expires_in = int(data.get("expires_in_minutes", 0))
+    expires_at = ""
+    if expires_in > 0:
+        expires_at = (datetime.utcnow() + timedelta(minutes=expires_in)).isoformat(timespec="seconds")
+    with get_conn() as db:
+        db.execute(
+            "INSERT INTO notifications (id, type, data, created_at, expires_at) VALUES (?,?,?,?,?)",
+            (nid, ntype, ndata, now, expires_at),
+        )
+    return {"id": nid, "created_at": now}
+
+
+@app.delete("/api/notifications/{notif_id}")
+def delete_notification(notif_id: str):
+    with get_conn() as db:
+        db.execute("DELETE FROM notifications WHERE id=?", (notif_id,))
+    return {"ok": True}
+
 
 # ─────────────────────────────────────────────
 #  MARKERS
@@ -30,11 +152,17 @@ def add_marker(data: dict):
         raise HTTPException(400, "lat, lng и name обязательны")
     mid = str(uuid.uuid4())[:8]
     now = datetime.utcnow().isoformat(timespec="seconds")
+    # expires_at for strike markers (30 min)
+    expires_in = int(data.get("expires_in_minutes", 0))
+    expires_at = ""
+    if expires_in > 0:
+        expires_at = (datetime.utcnow() + timedelta(minutes=expires_in)).isoformat(timespec="seconds")
     with get_conn() as db:
         db.execute(
             """INSERT INTO markers
-               (id,lat,lng,name,type,color,priority,info,coords_x,coords_y,zone,created_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+               (id,lat,lng,name,type,color,priority,info,coords_x,coords_y,zone,created_at,
+                radius,extra,marker_role,expires_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 mid,
                 data["lat"], data["lng"], data["name"],
@@ -46,6 +174,10 @@ def add_marker(data: dict):
                 data.get("coords_y", 0),
                 data.get("zone", 0),
                 now,
+                float(data.get("radius", 0)),
+                data.get("extra", ""),
+                data.get("marker_role", ""),
+                expires_at,
             ),
         )
     return {"id": mid, "created_at": now}
@@ -53,8 +185,11 @@ def add_marker(data: dict):
 
 @app.patch("/api/markers/{marker_id}")
 def update_marker(marker_id: str, data: dict):
-    fields = {k: v for k, v in data.items()
-              if k in ("name", "type", "color", "priority", "info", "coords_x", "coords_y", "zone")}
+    allowed_fields = {
+        "name", "type", "color", "priority", "info",
+        "coords_x", "coords_y", "zone", "radius", "extra", "marker_role",
+    }
+    fields = {k: v for k, v in data.items() if k in allowed_fields}
     if not fields:
         raise HTTPException(400, "Нет допустимых полей для обновления")
     set_clause = ", ".join(f"{k}=?" for k in fields)
@@ -259,7 +394,6 @@ def add_pilot(data: dict):
 
 @app.put("/api/pilots/{pilot_id}/stats")
 def update_pilot_stats(pilot_id: str, data: dict):
-    """Обновить или создать статистику пилота за период (week/month/all)."""
     period = data.get("period", "all")
     if period not in ("week", "month", "all"):
         raise HTTPException(400, "period: week | month | all")
@@ -286,7 +420,6 @@ def update_pilot_stats(pilot_id: str, data: dict):
 
 @app.patch("/api/pilots/{pilot_id}/stats")
 def increment_pilot_stats(pilot_id: str, data: dict):
-    """Инкрементально увеличить счётчики пилота за все периоды."""
     allowed = ("tech", "infantry", "comms", "agro", "delivery", "pos_fpv", "pos_wing", "queue", "flights")
     deltas = {k: int(data.get(k, 0)) for k in allowed if data.get(k)}
     if not deltas:
@@ -298,7 +431,6 @@ def increment_pilot_stats(pilot_id: str, data: dict):
         if not p:
             raise HTTPException(404, "Пилот не найден")
         for period in ("week", "month", "all"):
-            # Ensure row exists
             db.execute(
                 """INSERT OR IGNORE INTO pilot_stats
                    (pilot_id,period,tech,infantry,comms,agro,delivery,pos_fpv,pos_wing,queue,flights,updated_at)

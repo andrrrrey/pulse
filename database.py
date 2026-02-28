@@ -1,6 +1,11 @@
 import sqlite3
+import hashlib
 
 DB_PATH = "pulse.db"
+
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
 
 
 def get_conn():
@@ -91,4 +96,54 @@ def init_db():
                 coords      TEXT DEFAULT '',
                 note        TEXT DEFAULT ''
             );
+
+            CREATE TABLE IF NOT EXISTS users (
+                id            TEXT PRIMARY KEY,
+                username      TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                role          TEXT NOT NULL DEFAULT 'pilot',
+                callsign      TEXT DEFAULT ''
+            );
+
+            CREATE TABLE IF NOT EXISTS sessions (
+                token      TEXT PRIMARY KEY,
+                user_id    TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS notifications (
+                id         TEXT PRIMARY KEY,
+                type       TEXT NOT NULL,
+                data       TEXT DEFAULT '',
+                created_at TEXT NOT NULL,
+                expires_at TEXT DEFAULT ''
+            );
         """)
+
+        # Migrate markers table — add new columns if missing
+        for col_def in [
+            "radius      REAL DEFAULT 0",
+            "extra       TEXT DEFAULT ''",
+            "marker_role TEXT DEFAULT ''",
+            "expires_at  TEXT DEFAULT ''",
+        ]:
+            col_name = col_def.split()[0]
+            try:
+                db.execute(f"ALTER TABLE markers ADD COLUMN {col_def}")
+            except Exception:
+                pass  # column already exists
+
+        # Seed demo users (INSERT OR IGNORE — safe to run every startup)
+        demo_users = [
+            ("pilot-demo-id",     "pilot",     hash_password("pilot123"),     "pilot",     "Пилот-1"),
+            ("scout-demo-id",     "scout",     hash_password("scout123"),     "scout",     "Разведчик-1"),
+            ("reb-demo-id",       "reb",       hash_password("reb123"),       "reb",       "РЭБ-1"),
+            ("rer-demo-id",       "rer",       hash_password("rer123"),       "rer",       "РЭР-1"),
+            ("commander-demo-id", "commander", hash_password("commander123"), "commander", "Командир-1"),
+            ("admin-demo-id",     "admin",     hash_password("admin123"),     "admin",     "Администратор"),
+        ]
+        for uid, uname, phash, role, callsign in demo_users:
+            db.execute(
+                "INSERT OR IGNORE INTO users (id, username, password_hash, role, callsign) VALUES (?,?,?,?,?)",
+                (uid, uname, phash, role, callsign),
+            )
