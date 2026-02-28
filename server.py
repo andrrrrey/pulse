@@ -140,9 +140,18 @@ def delete_notification(notif_id: str):
 
 @app.get("/api/markers")
 def get_markers():
+    import json
     with get_conn() as db:
         rows = db.execute("SELECT * FROM markers ORDER BY created_at").fetchall()
-        return [dict(r) for r in rows]
+        result = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["attachments"] = json.loads(d.get("attachments") or "[]")
+            except Exception:
+                d["attachments"] = []
+            result.append(d)
+        return result
 
 
 @app.post("/api/markers")
@@ -150,6 +159,7 @@ def add_marker(data: dict):
     required = {"lat", "lng", "name"}
     if not required.issubset(data):
         raise HTTPException(400, "lat, lng и name обязательны")
+    import json
     mid = str(uuid.uuid4())[:8]
     now = datetime.utcnow().isoformat(timespec="seconds")
     # expires_at for strike markers (30 min)
@@ -157,12 +167,13 @@ def add_marker(data: dict):
     expires_at = ""
     if expires_in > 0:
         expires_at = (datetime.utcnow() + timedelta(minutes=expires_in)).isoformat(timespec="seconds")
+    attachments = json.dumps(data.get("attachments", []))
     with get_conn() as db:
         db.execute(
             """INSERT INTO markers
                (id,lat,lng,name,type,color,priority,info,coords_x,coords_y,zone,created_at,
-                radius,extra,marker_role,expires_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                radius,extra,marker_role,expires_at,attachments)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 mid,
                 data["lat"], data["lng"], data["name"],
@@ -178,6 +189,7 @@ def add_marker(data: dict):
                 data.get("extra", ""),
                 data.get("marker_role", ""),
                 expires_at,
+                attachments,
             ),
         )
     return {"id": mid, "created_at": now}
@@ -486,6 +498,59 @@ def add_killfeed(data: dict):
                 data.get("note", ""),
             ),
         )
+    return {"ok": True}
+
+
+# ─────────────────────────────────────────────
+#  NEWS
+# ─────────────────────────────────────────────
+
+@app.get("/api/news")
+def get_news():
+    with get_conn() as db:
+        rows = db.execute("SELECT * FROM news ORDER BY created_at DESC").fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/news")
+async def create_news(data: dict, authorization: str | None = Header(default=None)):
+    user = require_auth(authorization)
+    if user["role"] != "admin":
+        raise HTTPException(403, "Создавать новости может только администратор")
+    if not data.get("title", "").strip():
+        raise HTTPException(400, "title обязателен")
+    nid = str(uuid.uuid4())[:8]
+    now = datetime.utcnow().isoformat(timespec="seconds")
+    import json
+    gallery = json.dumps(data.get("gallery", []))
+    with get_conn() as db:
+        db.execute(
+            """INSERT INTO news (id, badge, title, date, excerpt, body, media_type, media_src, gallery, created_by, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                nid,
+                data.get("badge", ""),
+                data["title"].strip(),
+                data.get("date", now + " UTC"),
+                data.get("excerpt", ""),
+                data.get("body", ""),
+                data.get("media_type", "image"),
+                data.get("media_src", ""),
+                gallery,
+                user["username"],
+                now,
+            ),
+        )
+    return {"id": nid, "created_at": now}
+
+
+@app.delete("/api/news/{news_id}")
+def delete_news(news_id: str, authorization: str | None = Header(default=None)):
+    user = require_auth(authorization)
+    if user["role"] != "admin":
+        raise HTTPException(403, "Удалять новости может только администратор")
+    with get_conn() as db:
+        db.execute("DELETE FROM news WHERE id=?", (news_id,))
     return {"ok": True}
 
 

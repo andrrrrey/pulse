@@ -395,152 +395,9 @@ nav { display: flex; gap: 2px; }
 }
 .leaflet-control-zoom a:hover { background: rgba(249,115,22,.15) !important; }
 </style>
-
-<style>
-/* ── Login overlay ─────────────────────────── */
-#login-overlay {
-  position: fixed; inset: 0; z-index: 20000;
-  background: #020617;
-  display: flex; align-items: center; justify-content: center; flex-direction: column;
-}
-.login-box {
-  width: 340px;
-  border: 1px solid rgba(249,115,22,.4);
-  background: rgba(15,23,42,.85);
-  backdrop-filter: blur(12px);
-  padding: 28px 28px 24px;
-}
-.login-input {
-  width: 100%; background: transparent; border: 1px solid #334155;
-  color: #cbd5e1; font-family: 'JetBrains Mono', monospace; font-size: 13px;
-  padding: 8px 10px; outline: none; transition: border-color .15s; display: block;
-}
-.login-input:focus { border-color: rgba(249,115,22,.6); }
-.login-btn {
-  width: 100%; padding: 10px; border: 1px solid rgba(249,115,22,.6);
-  background: rgba(249,115,22,.12); color: #f97316; font-family: inherit;
-  font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
-  cursor: pointer; transition: all .15s;
-}
-.login-btn:hover { background: rgba(249,115,22,.25); }
-.login-demo { font-size: 9.5px; color: #475569; }
-.login-demo span { color: #f97316; }
-
-/* ── Notification banner ──────────────────── */
-.notif-item {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 10px 14px; margin-bottom: 6px;
-  border: 1px solid rgba(249,115,22,.4);
-  background: rgba(2,6,23,.97);
-  backdrop-filter: blur(8px);
-  animation: notif-appear .2s ease;
-  position: relative;
-}
-@keyframes notif-appear {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.notif-item.reb { border-color: rgba(139,92,246,.5); }
-.notif-item.silence { border-color: rgba(239,68,68,.6); background: rgba(239,68,68,.08); }
-.notif-item.strike { border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.06); }
-.notif-close {
-  position: absolute; top: 6px; right: 8px;
-  background: none; border: none; color: #475569; cursor: pointer; font-size: 12px;
-}
-.notif-close:hover { color: #f97316; }
-
-/* ── REB dome gradient overlay ──────────── */
-.lf-reb-tip {
-  background: transparent !important; border: none !important; box-shadow: none !important;
-  color: rgba(167,139,250,.85) !important; font-family: 'JetBrains Mono', monospace !important;
-  font-size: 8px !important; letter-spacing: .05em !important;
-}
-
-/* ── Silence mode alert ──────────────────── */
-#silence-banner {
-  display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 15000;
-  padding: 10px; text-align: center;
-  background: rgba(239,68,68,.18); border-bottom: 1px solid rgba(239,68,68,.6);
-  backdrop-filter: blur(4px);
-  font-size: 13px; font-weight: 700; color: #ef4444; letter-spacing: .12em;
-  animation: silence-pulse 1.5s infinite;
-}
-@keyframes silence-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
-
-/* ── Role badge ─────────────────────────── */
-.role-badge-pill {
-  font-size: 9px; padding: 1px 6px; border: 1px solid; letter-spacing: .06em;
-  text-transform: uppercase; white-space: nowrap;
-}
-.role-pilot     { color: #06b6d4; border-color: rgba(6,182,212,.4); }
-.role-scout     { color: #84cc16; border-color: rgba(132,204,22,.4); }
-.role-reb       { color: #8b5cf6; border-color: rgba(139,92,246,.4); }
-.role-rer       { color: #f59e0b; border-color: rgba(245,158,11,.4); }
-.role-commander { color: #60a5fa; border-color: rgba(96,165,250,.4); }
-.role-admin     { color: #f97316; border-color: rgba(249,115,22,.4); }
-
-/* ── Btn REB Dome ─────────────────────── */
-.tb-btn-reb { border-color: rgba(139,92,246,.4) !important; color: #8b5cf6 !important; }
-.tb-btn-reb:hover, .tb-btn-reb.active { background: rgba(139,92,246,.1) !important; }
-.tb-btn-rer { border-color: rgba(239,68,68,.4) !important; color: #ef4444 !important; }
-.tb-btn-rer:hover, .tb-btn-rer.active { background: rgba(239,68,68,.08) !important; }
-.tb-btn-silence { border-color: rgba(239,68,68,.5) !important; color: #ef4444 !important; }
-.tb-btn-silence.active { background: rgba(239,68,68,.15) !important; }
-
-/* ── Admin add-news btn ─────────────── */
-#btn-add-news { display: none; }
-
-/* ── Priority change btn (commander) ─── */
-.pop-btn-prio { border-color: rgba(96,165,250,.4) !important; color: #60a5fa !important; }
-.pop-btn-prio:hover { background: rgba(96,165,250,.08) !important; }
-
-/* ── Enemy target marker icon ───────── */
-.enemy-target-icon { background: none; border: none; }
-</style>
 </head>
 
 <body>
-
-<!-- ══════════ SILENCE BANNER ══════════ -->
-<div id="silence-banner">⚡ РЕЖИМ ТИШИНА — НЕМЕДЛЕННО ОТКЛЮЧИТЬ РЭБ ⚡</div>
-
-<!-- ══════════ LOGIN OVERLAY ══════════ -->
-<div id="login-overlay">
-  <div style="text-align:center;margin-bottom:32px;">
-    <div style="font-size:30px;font-weight:700;color:#fff;letter-spacing:.12em;">PUL<span style="color:#f97316;">SE</span></div>
-    <div style="font-size:10px;color:#334155;letter-spacing:.15em;margin-top:5px;">БОЕВОЙ ХАБ · СИСТЕМА ИДЕНТИФИКАЦИИ</div>
-  </div>
-  <div class="login-box">
-    <div style="font-size:10.5px;color:#64748b;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">// Авторизация</div>
-    <div style="margin-bottom:13px;">
-      <label style="font-size:9.5px;color:#64748b;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:5px;">Логин</label>
-      <input id="login-username" class="login-input" type="text" placeholder="Введите логин" autocomplete="username"
-        onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
-    </div>
-    <div style="margin-bottom:18px;">
-      <label style="font-size:9.5px;color:#64748b;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:5px;">Пароль</label>
-      <input id="login-password" class="login-input" type="password" placeholder="Введите пароль" autocomplete="current-password"
-        onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <div id="login-error" style="display:none;font-size:11px;color:#ef4444;margin-bottom:12px;letter-spacing:.04em;padding:6px 8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);"></div>
-    <button class="login-btn" onclick="doLogin()">ВОЙТИ В СИСТЕМУ</button>
-    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1e293b;">
-      <div class="login-demo" style="margin-bottom:7px;letter-spacing:.08em;text-transform:uppercase;">Демо-пользователи:</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;">
-        <div class="login-demo"><span>pilot</span> / pilot123 — Пилот ФПВ</div>
-        <div class="login-demo"><span>scout</span> / scout123 — Разведчик</div>
-        <div class="login-demo"><span>reb</span> / reb123 — Спец. РЭБ</div>
-        <div class="login-demo"><span>rer</span> / rer123 — Спец. РЭР</div>
-        <div class="login-demo"><span>commander</span> / commander123 — Командир</div>
-        <div class="login-demo"><span>admin</span> / admin123 — Администратор</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ NOTIFICATION BANNER ══════════ -->
-<div id="notif-banner" style="position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9500;min-width:340px;max-width:600px;pointer-events:none;"></div>
-
 <div id="scanlines"></div>
 
 <div id="app">
@@ -582,16 +439,10 @@ nav { display: flex; gap: 2px; }
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span id="clock">00:00:00 UTC</span>
       </div>
-      <!-- User badge + logout -->
-      <div style="display:flex;align-items:center;gap:6px;padding:3px 8px;border:1px solid rgba(249,115,22,.2);background:rgba(249,115,22,.05);">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span id="user-badge" style="font-size:10px;color:#f97316;letter-spacing:.06em;font-weight:600;">—</span>
-        <span id="role-badge" class="role-badge-pill role-pilot">—</span>
-        <button onclick="doLogout()" title="Выйти из системы"
-          style="display:flex;align-items:center;gap:3px;padding:2px 8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);color:#ef4444;font-family:inherit;font-size:9px;letter-spacing:.05em;cursor:pointer;transition:all .15s;text-transform:uppercase;"
-          onmouseover="this.style.background='rgba(239,68,68,.18)'" onmouseout="this.style.background='rgba(239,68,68,.06)'">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Выйти
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span id="user-callsign" style="font-size:9px;color:#f97316;letter-spacing:.07em;display:none;"></span>
+        <button id="user-btn" onclick="toggleAuthMenu()" title="Войти" style="width:27px;height:27px;display:flex;align-items:center;justify-content:center;border:1px solid #1e293b;background:rgba(15,23,42,.5);color:#475569;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='rgba(249,115,22,.4)';this.style.color='#f97316'" onmouseout="if(!window._pulseUser){this.style.borderColor='#1e293b';this.style.color='#475569'}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </button>
       </div>
     </div>
@@ -618,18 +469,6 @@ nav { display: flex; gap: 2px; }
           <button class="tb-btn active" id="btn-mark" onclick="toggleMarkMode()">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             МЕТКА
-          </button>
-          <button class="tb-btn tb-btn-reb" id="btn-reb-mark" style="display:none;" onclick="toggleRebMarkMode()">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>
-            КУПОЛ РЭБ
-          </button>
-          <button class="tb-btn tb-btn-rer" id="btn-rer-mark" style="display:none;" onclick="toggleRerMarkMode()">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-            ЦЕЛЬ
-          </button>
-          <button class="tb-btn tb-btn-silence" id="btn-silence" style="display:none;" onclick="toggleSilenceMode()">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-            ТИШИНА
           </button>
         </div>
       </div>
@@ -809,15 +648,58 @@ nav { display: flex; gap: 2px; }
   <div style="max-width:900px;margin:40px auto;padding:0 16px 60px;">
 
     <!-- Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:10px;">
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="width:3px;height:22px;background:#f97316;"></div>
         <span style="font-size:15px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Новости</span>
         <span style="font-size:9px;color:#334155;letter-spacing:.1em;margin-left:4px;">// ЛЕНТА СОБЫТИЙ</span>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button id="btn-add-news" onclick="openAddNewsPopup()" style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.5);color:#f97316;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.background='rgba(249,115,22,.22)'" onmouseout="this.style.background='rgba(249,115,22,.1)'">+ Добавить новость</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button id="add-news-btn" onclick="openAddNewsForm()" style="display:none;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.4);color:#f97316;cursor:pointer;font-family:inherit;font-size:11px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.background='rgba(249,115,22,.2)'" onmouseout="this.style.background='rgba(249,115,22,.1)'">+ Добавить</button>
         <button onclick="closeNews()" style="background:none;border:1px solid #334155;color:#64748b;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.borderColor='rgba(249,115,22,.5)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#334155';this.style.color='#64748b'">✕ Закрыть</button>
+      </div>
+    </div>
+
+    <!-- Add news form (admin only, hidden by default) -->
+    <div id="add-news-form" style="display:none;background:rgba(15,23,42,.7);border:1px solid rgba(249,115,22,.25);padding:20px 24px;margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <div style="width:3px;height:16px;background:#f97316;"></div>
+        <span style="font-size:12px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Новая публикация</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="display:block;font-size:9px;color:#64748b;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;">Заголовок *</label>
+          <input id="an-title" type="text" placeholder="Заголовок новости…" maxlength="120" style="width:100%;background:rgba(2,6,23,.8);border:1px solid #1e293b;color:#cbd5e1;font-family:inherit;font-size:12px;padding:6px 10px;outline:none;transition:border .15s;" onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='#1e293b'">
+        </div>
+        <div>
+          <label style="display:block;font-size:9px;color:#64748b;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;">Рубрика</label>
+          <input id="an-badge" type="text" placeholder="Обновление, Аналитика…" maxlength="40" style="width:100%;background:rgba(2,6,23,.8);border:1px solid #1e293b;color:#cbd5e1;font-family:inherit;font-size:12px;padding:6px 10px;outline:none;transition:border .15s;" onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='#1e293b'">
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:9px;color:#64748b;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;">Краткое описание</label>
+        <textarea id="an-excerpt" rows="2" placeholder="Краткое описание для карточки…" style="width:100%;background:rgba(2,6,23,.8);border:1px solid #1e293b;color:#cbd5e1;font-family:inherit;font-size:12px;padding:6px 10px;outline:none;resize:vertical;transition:border .15s;" onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='#1e293b'"></textarea>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:9px;color:#64748b;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;">Полный текст</label>
+        <textarea id="an-body" rows="5" placeholder="Текст публикации…" style="width:100%;background:rgba(2,6,23,.8);border:1px solid #1e293b;color:#cbd5e1;font-family:inherit;font-size:12px;padding:6px 10px;outline:none;resize:vertical;transition:border .15s;" onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='#1e293b'"></textarea>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:9px;color:#64748b;letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px;">Медиафайл (изображение или видео)</label>
+        <div id="an-drop" style="border:1px dashed rgba(249,115,22,.3);padding:18px;text-align:center;cursor:pointer;transition:border .15s;position:relative;" onclick="document.getElementById('an-file-input').click()" ondragover="event.preventDefault();this.style.borderColor='rgba(249,115,22,.7)'" ondragleave="this.style.borderColor='rgba(249,115,22,.3)'" ondrop="anHandleDrop(event)">
+          <input id="an-file-input" type="file" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,video/quicktime" style="display:none;" onchange="anHandleFile(this.files[0])">
+          <div id="an-drop-hint">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.5" style="margin-bottom:6px;opacity:.6;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <div style="font-size:10px;color:#475569;letter-spacing:.05em;">Перетащите файл сюда или нажмите</div>
+            <div style="font-size:9px;color:#334155;margin-top:3px;">PNG, JPG, GIF, WebP, MP4, WebM · до 25 МБ</div>
+          </div>
+          <div id="an-preview-wrap" style="display:none;"></div>
+        </div>
+      </div>
+      <div id="an-error" style="display:none;color:#ef4444;font-size:10px;margin-bottom:10px;letter-spacing:.04em;"></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="submitAddNews()" style="flex:1;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.4);color:#f97316;font-family:inherit;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(249,115,22,.2)'" onmouseout="this.style.background='rgba(249,115,22,.12)'">Опубликовать</button>
+        <button onclick="document.getElementById('add-news-form').style.display='none'" style="background:none;border:1px solid #1e293b;color:#64748b;font-family:inherit;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 16px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#334155';this.style.color='#94a3b8'" onmouseout="this.style.borderColor='#1e293b';this.style.color='#64748b'">Отмена</button>
       </div>
     </div>
 
@@ -1778,6 +1660,66 @@ nav { display: flex; gap: 2px; }
   <img id="lightbox-img" src="" alt="">
 </div>
 
+<!-- Login Modal -->
+<div id="login-modal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(2,6,23,.9);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;">
+  <div style="background:rgba(15,23,42,.97);border:1px solid rgba(249,115,22,.35);padding:28px 32px;min-width:300px;max-width:340px;position:relative;">
+    <button onclick="closeLoginModal()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:#475569;font-size:16px;cursor:pointer;line-height:1;">✕</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+      <div style="width:3px;height:18px;background:#f97316;"></div>
+      <span id="login-modal-title" style="font-size:13px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Авторизация</span>
+    </div>
+    <div id="login-form-wrap">
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:10px;color:#64748b;letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;">Логин</label>
+        <input id="login-username" type="text" autocomplete="username" placeholder="Имя пользователя" style="width:100%;background:rgba(2,6,23,.8);border:1px solid #1e293b;color:#cbd5e1;font-family:inherit;font-size:12px;padding:7px 10px;outline:none;transition:border .15s;" onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='#1e293b'" onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;color:#64748b;letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;">Пароль</label>
+        <input id="login-password" type="password" autocomplete="current-password" placeholder="Пароль" style="width:100%;background:rgba(2,6,23,.8);border:1px solid #1e293b;color:#cbd5e1;font-family:inherit;font-size:12px;padding:7px 10px;outline:none;transition:border .15s;" onfocus="this.style.borderColor='rgba(249,115,22,.5)'" onblur="this.style.borderColor='#1e293b'" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div id="login-error" style="display:none;color:#ef4444;font-size:10px;margin-bottom:10px;letter-spacing:.04em;"></div>
+      <button onclick="doLogin()" style="width:100%;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.4);color:#f97316;font-family:inherit;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(249,115,22,.2)'" onmouseout="this.style.background='rgba(249,115,22,.12)'">Войти</button>
+    </div>
+    <div id="login-user-info" style="display:none;">
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">Авторизован как:</div>
+      <div id="login-user-name" style="font-size:13px;color:#f97316;font-weight:700;margin-bottom:4px;"></div>
+      <div id="login-user-role" style="font-size:10px;color:#64748b;letter-spacing:.06em;margin-bottom:16px;"></div>
+      <button onclick="doLogout()" style="width:100%;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);color:#ef4444;font-family:inherit;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(239,68,68,.15)'" onmouseout="this.style.background='rgba(239,68,68,.08)'">Выйти</button>
+    </div>
+  </div>
+</div>
+
+<!-- Priority Change Dialog -->
+<div id="prio-dialog" style="display:none;position:fixed;inset:0;z-index:9400;background:rgba(2,6,23,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div style="background:rgba(15,23,42,.97);border:1px solid rgba(249,115,22,.35);padding:22px 26px;min-width:260px;position:relative;">
+    <button onclick="closePrioDialog()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:#475569;font-size:16px;cursor:pointer;line-height:1;">✕</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <div style="width:3px;height:16px;background:#f97316;"></div>
+      <span style="font-size:12px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Изменить приоритет</span>
+    </div>
+    <div id="prio-dialog-name" style="font-size:11px;color:#64748b;margin-bottom:14px;"></div>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:16px;">
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;padding:6px 10px;border:1px solid transparent;transition:all .12s;" onmouseover="this.style.borderColor='rgba(100,116,139,.3)'" onmouseout="this.style.borderColor='transparent'">
+        <input type="radio" name="prio-dlg" value="low" style="accent-color:#64748b;">
+        <span style="color:#64748b;font-size:11px;letter-spacing:.05em;">НИЗКИЙ</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;padding:6px 10px;border:1px solid transparent;transition:all .12s;" onmouseover="this.style.borderColor='rgba(245,158,11,.3)'" onmouseout="this.style.borderColor='transparent'">
+        <input type="radio" name="prio-dlg" value="med" style="accent-color:#f59e0b;">
+        <span style="color:#f59e0b;font-size:11px;letter-spacing:.05em;">СРЕДНИЙ</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;padding:6px 10px;border:1px solid transparent;transition:all .12s;" onmouseover="this.style.borderColor='rgba(249,115,22,.3)'" onmouseout="this.style.borderColor='transparent'">
+        <input type="radio" name="prio-dlg" value="high" style="accent-color:#f97316;">
+        <span style="color:#f97316;font-size:11px;letter-spacing:.05em;">ВЫСОКИЙ</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;padding:6px 10px;border:1px solid transparent;transition:all .12s;" onmouseover="this.style.borderColor='rgba(239,68,68,.3)'" onmouseout="this.style.borderColor='transparent'">
+        <input type="radio" name="prio-dlg" value="crit" style="accent-color:#ef4444;">
+        <span style="color:#ef4444;font-size:11px;letter-spacing:.05em;">КРИТ</span>
+      </label>
+    </div>
+    <button onclick="confirmPrioChange()" style="width:100%;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.4);color:#f97316;font-family:inherit;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(249,115,22,.2)'" onmouseout="this.style.background='rgba(249,115,22,.12)'">Применить</button>
+  </div>
+</div>
+
 <style>
 /* ── Settings toggle switch ───────────────────── */
 .stg-toggle {
@@ -2200,464 +2142,10 @@ nav { display: flex; gap: 2px; }
 
 </div><!-- /app -->
 
-<!-- ══════════ REB DOME POPUP ══════════ -->
-<div id="reb-popup" style="display:none;position:fixed;z-index:8000;pointer-events:none;">
-  <div class="mfp-wrap" id="reb-inner" style="border-color:rgba(139,92,246,.5);">
-    <div class="mfp-head">
-      <div style="display:flex;align-items:center;gap:7px;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-        <span style="color:#8b5cf6;">КУПОЛ РЭБ</span>
-      </div>
-      <button class="mfp-close" onclick="cancelRebMark()" title="Отмена">✕</button>
-    </div>
-    <div class="mfp-coords" id="reb-coords-display" style="border-color:rgba(139,92,246,.2);"></div>
-    <div class="mfp-body">
-      <div class="mfp-field">
-        <label class="mfp-label">Название / позиция</label>
-        <input id="reb-name" class="mfp-input" type="text" placeholder="РЭБ-А" maxlength="30" autocomplete="off">
-      </div>
-      <div class="mfp-field">
-        <label class="mfp-label">Тип установки</label>
-        <div style="display:flex;gap:6px;">
-          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #334155;cursor:pointer;font-size:11px;color:#64748b;">
-            <input type="radio" name="reb-type" value="circle" checked style="accent-color:#8b5cf6;"> Круговая
-          </label>
-          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #334155;cursor:pointer;font-size:11px;color:#64748b;">
-            <input type="radio" name="reb-type" value="directional" style="accent-color:#8b5cf6;"> Направленная
-          </label>
-        </div>
-      </div>
-      <div class="mfp-field">
-        <label class="mfp-label">Радиус действия (метры)</label>
-        <input id="reb-radius" class="mfp-input" type="number" value="150" min="10" max="5000" step="10">
-      </div>
-      <div class="mfp-field">
-        <label class="mfp-label">Время работы (часы)</label>
-        <input id="reb-worktime" class="mfp-input" type="number" value="2" min="0.5" max="24" step="0.5">
-      </div>
-      <div class="mfp-field">
-        <label class="mfp-label">Глушимые частоты (МГц)</label>
-        <input id="reb-freqs" class="mfp-input" type="text" placeholder="5800, 5850, 5900" autocomplete="off">
-      </div>
-    </div>
-    <div class="mfp-footer">
-      <button class="mfp-btn-cancel" onclick="cancelRebMark()">ОТМЕНА</button>
-      <button class="mfp-btn-add" onclick="confirmRebMark()" style="border-color:rgba(139,92,246,.6);background:rgba(139,92,246,.15);color:#8b5cf6;">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>
-        УСТАНОВИТЬ КУПОЛ
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ RER ENEMY TARGET POPUP ══════════ -->
-<div id="rer-popup" style="display:none;position:fixed;z-index:8000;pointer-events:none;">
-  <div class="mfp-wrap" id="rer-inner" style="border-color:rgba(239,68,68,.5);">
-    <div class="mfp-head">
-      <div style="display:flex;align-items:center;gap:7px;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-        <span style="color:#ef4444;">ВРАЖЕСКАЯ ЦЕЛЬ — РЭР</span>
-      </div>
-      <button class="mfp-close" onclick="cancelRerMark()" title="Отмена">✕</button>
-    </div>
-    <div class="mfp-coords" id="rer-coords-display" style="border-color:rgba(239,68,68,.2);"></div>
-    <div class="mfp-body">
-      <div class="mfp-field">
-        <label class="mfp-label">Тип цели</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #334155;cursor:pointer;font-size:11px;color:#64748b;white-space:nowrap;">
-            <input type="radio" name="rer-type" value="agro" checked style="accent-color:#ef4444;"> Агро-дрон
-          </label>
-          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #334155;cursor:pointer;font-size:11px;color:#64748b;white-space:nowrap;">
-            <input type="radio" name="rer-type" value="fpv" style="accent-color:#ef4444;"> ФПВ-квадрокоптер
-          </label>
-        </div>
-      </div>
-      <div class="mfp-field">
-        <label class="mfp-label">Частота управления (МГц)</label>
-        <input id="rer-freq" class="mfp-input" type="text" placeholder="5800" autocomplete="off">
-      </div>
-      <div class="mfp-field">
-        <label class="mfp-label">Направление полёта</label>
-        <input id="rer-direction" class="mfp-input" type="text" placeholder="СЗ → ЮВ, ~60 км/ч" autocomplete="off">
-      </div>
-      <div class="mfp-field">
-        <label class="mfp-label">Высота (метры)</label>
-        <input id="rer-height" class="mfp-input" type="number" value="50" min="0" max="3000">
-      </div>
-      <div class="mfp-field" style="border:1px solid rgba(239,68,68,.3);padding:8px;background:rgba(239,68,68,.05);">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-          <input type="checkbox" id="rer-strike" style="accent-color:#ef4444;" onchange="document.getElementById('rer-strike-info').style.display=this.checked?'block':'none'">
-          <span style="font-size:12px;color:#ef4444;letter-spacing:.04em;font-weight:600;">УДАР ПО СОЮЗНОЙ ПОЗИЦИИ</span>
-        </label>
-        <div id="rer-strike-info" style="display:none;margin-top:6px;font-size:10px;color:#94a3b8;">
-          Метка об ударе будет видна командиру и РЭБ в течение 30 минут
-        </div>
-      </div>
-    </div>
-    <div class="mfp-footer">
-      <button class="mfp-btn-cancel" onclick="cancelRerMark()">ОТМЕНА</button>
-      <button class="mfp-btn-add" onclick="confirmRerMark()" style="border-color:rgba(239,68,68,.6);background:rgba(239,68,68,.08);color:#ef4444;">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        ОТМЕТИТЬ ЦЕЛЬ
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ ADD NEWS POPUP (Admin) ══════════ -->
-<div id="add-news-popup" style="display:none;position:fixed;inset:0;z-index:7000;background:rgba(2,6,23,.8);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
-  <div style="width:480px;border:1px solid rgba(249,115,22,.4);background:rgba(15,23,42,.97);padding:24px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
-      <span style="font-size:13px;font-weight:700;color:#f97316;letter-spacing:.08em;text-transform:uppercase;">Добавить новость</span>
-      <button onclick="document.getElementById('add-news-popup').style.display='none'" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:14px;">✕</button>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label class="mfp-label">Заголовок</label>
-      <input id="news-title-input" class="mfp-input" type="text" placeholder="Заголовок новости" maxlength="120" autocomplete="off">
-    </div>
-    <div style="margin-bottom:12px;">
-      <label class="mfp-label">Краткое описание</label>
-      <input id="news-excerpt-input" class="mfp-input" type="text" placeholder="Краткое описание..." maxlength="200" autocomplete="off">
-    </div>
-    <div style="margin-bottom:12px;">
-      <label class="mfp-label">Полный текст</label>
-      <textarea id="news-body-input" class="mfp-textarea" rows="4" placeholder="Полный текст новости..."></textarea>
-    </div>
-    <div style="margin-bottom:16px;">
-      <label class="mfp-label">Метка (тег)</label>
-      <input id="news-badge-input" class="mfp-input" type="text" placeholder="Оперативно / Обновление / Инструкция" autocomplete="off">
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="document.getElementById('add-news-popup').style.display='none'" class="mfp-btn-cancel" style="flex:1;">ОТМЕНА</button>
-      <button onclick="submitAdminNews()" class="mfp-btn-add" style="flex:2;">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        ОПУБЛИКОВАТЬ
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-/* ═══════════════════════════════════════════
-   AUTH STATE & ROLE SYSTEM
-═══════════════════════════════════════════ */
-let currentUser = null;
-let authToken   = null;
-
-const ROLE_NAMES = {
-  pilot: 'Пилот ФПВ', scout: 'Разведчик', reb: 'Специалист РЭБ',
-  rer: 'Специалист РЭР', commander: 'Командир', admin: 'Администратор'
-};
-
-const ROLE_CAN = {
-  pilot:     { freq:true,  markers:true,  rebDome:false, enemyTarget:false, silenceMode:false, changePriority:false, addNews:false, seeAll:true  },
-  scout:     { freq:false, markers:true,  rebDome:false, enemyTarget:false, silenceMode:false, changePriority:false, addNews:false, seeAll:true  },
-  reb:       { freq:false, markers:false, rebDome:true,  enemyTarget:false, silenceMode:false, changePriority:false, addNews:false, seeAll:false },
-  rer:       { freq:false, markers:false, rebDome:false, enemyTarget:true,  silenceMode:false, changePriority:false, addNews:false, seeAll:true  },
-  commander: { freq:false, markers:true,  rebDome:false, enemyTarget:false, silenceMode:true,  changePriority:true,  addNews:false, seeAll:true  },
-  admin:     { freq:true,  markers:true,  rebDome:true,  enemyTarget:true,  silenceMode:true,  changePriority:true,  addNews:true,  seeAll:true  },
-};
-
-function getRoleCan() {
-  return ROLE_CAN[currentUser?.role] || ROLE_CAN.pilot;
-}
-
-function apiHeaders() {
-  const h = { 'Content-Type': 'application/json' };
-  if (authToken) h['Authorization'] = 'Bearer ' + authToken;
-  return h;
-}
-
-async function doLogin() {
-  const username = (document.getElementById('login-username').value || '').trim();
-  const password = document.getElementById('login-password').value || '';
-  const errEl = document.getElementById('login-error');
-  errEl.style.display = 'none';
-  if (!username || !password) {
-    errEl.textContent = 'Введите логин и пароль';
-    errEl.style.display = 'block';
-    return;
-  }
-  try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const j = await res.json();
-    if (!res.ok) {
-      errEl.textContent = j.detail || 'Ошибка авторизации';
-      errEl.style.display = 'block';
-      return;
-    }
-    authToken   = j.token;
-    currentUser = j.user;
-    localStorage.setItem('pulse_token', authToken);
-    localStorage.setItem('pulse_user', JSON.stringify(currentUser));
-    applyUserRole();
-    document.getElementById('login-overlay').style.display = 'none';
-    // Re-load markers with role filter after login
-    loadMarkersFromServer();
-    // Start notifications polling
-    startNotifPolling();
-  } catch (e) {
-    errEl.textContent = 'Ошибка подключения к серверу';
-    errEl.style.display = 'block';
-  }
-}
-
-async function doLogout() {
-  try {
-    if (authToken) {
-      await fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authToken } });
-    }
-  } catch (_) {}
-  authToken   = null;
-  currentUser = null;
-  localStorage.removeItem('pulse_token');
-  localStorage.removeItem('pulse_user');
-  // Clear all server-loaded markers from map
-  Object.keys(serverMarkerRefs).forEach(id => {
-    if (serverMarkerRefs[id]) {
-      if (serverMarkerRefs[id].circle) serverMarkerRefs[id].circle.remove();
-      if (serverMarkerRefs[id].handle) serverMarkerRefs[id].handle.remove();
-      if (serverMarkerRefs[id].remove) serverMarkerRefs[id].remove();
-    }
-    delete serverMarkerRefs[id];
-  });
-  stopNotifPolling();
-  document.getElementById('login-overlay').style.display = 'flex';
-}
-
-async function checkStoredAuth() {
-  const token = localStorage.getItem('pulse_token');
-  if (!token) return;
-  try {
-    const res = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
-    if (res.ok) {
-      authToken   = token;
-      currentUser = await res.json();
-      applyUserRole();
-      document.getElementById('login-overlay').style.display = 'none';
-      loadMarkersFromServer();
-      startNotifPolling();
-    } else {
-      localStorage.removeItem('pulse_token');
-    }
-  } catch (_) {}
-}
-
-function applyUserRole() {
-  if (!currentUser) return;
-  const role = currentUser.role;
-  const can  = getRoleCan();
-
-  // Header badges
-  const userBadge = document.getElementById('user-badge');
-  if (userBadge) userBadge.textContent = currentUser.callsign || currentUser.username;
-
-  const roleBadge = document.getElementById('role-badge');
-  if (roleBadge) {
-    roleBadge.textContent = ROLE_NAMES[role] || role;
-    roleBadge.className = 'role-badge-pill role-' + role;
-  }
-
-  // Freq table visibility
-  const freqBlock = document.getElementById('freq-block');
-  if (freqBlock) freqBlock.style.display = can.freq ? '' : 'none';
-
-  // Toolbar buttons
-  const btnMark = document.getElementById('btn-mark');
-  if (btnMark) btnMark.style.display = can.markers ? '' : 'none';
-
-  const btnReb = document.getElementById('btn-reb-mark');
-  if (btnReb) btnReb.style.display = can.rebDome ? '' : 'none';
-
-  const btnRer = document.getElementById('btn-rer-mark');
-  if (btnRer) btnRer.style.display = can.enemyTarget ? '' : 'none';
-
-  const btnSilence = document.getElementById('btn-silence');
-  if (btnSilence) btnSilence.style.display = can.silenceMode ? '' : 'none';
-
-  // Admin add news button
-  const btnAddNews = document.getElementById('btn-add-news');
-  if (btnAddNews) btnAddNews.style.display = can.addNews ? 'block' : 'none';
-
-  // Filter static demo markers for REB role (only enemy drones visible)
-  const rebVisibleIds = new Set(['agro1']); // REB sees only enemy drones
-  Object.entries(markerRefs).forEach(([id, marker]) => {
-    if (role === 'reb') {
-      marker.setOpacity(rebVisibleIds.has(id) ? 1 : 0);
-    } else {
-      marker.setOpacity(1);
-    }
-  });
-}
-
-/* ─── Silence Mode ─────────────────────────────────────── */
-let silenceModeActive = false;
-let silenceNotifId = null;
-
-async function toggleSilenceMode() {
-  const btn = document.getElementById('btn-silence');
-  if (!silenceModeActive) {
-    // Activate silence mode
-    silenceModeActive = true;
-    btn.classList.add('active');
-    try {
-      const res = await fetch('/api/notifications', {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({ type: 'silence', data: '{}' }),
-      });
-      const j = await res.json();
-      silenceNotifId = j.id;
-    } catch (_) {}
-    showSilenceBanner(true);
-  } else {
-    // Deactivate
-    silenceModeActive = false;
-    btn.classList.remove('active');
-    if (silenceNotifId) {
-      try { await fetch('/api/notifications/' + silenceNotifId, { method: 'DELETE', headers: apiHeaders() }); } catch (_) {}
-      silenceNotifId = null;
-    }
-    showSilenceBanner(false);
-  }
-}
-
-function showSilenceBanner(on) {
-  const banner = document.getElementById('silence-banner');
-  if (banner) banner.style.display = on ? 'block' : 'none';
-}
-
-/* ─── Notifications polling ─────────────────────────────── */
-let _notifPollInterval = null;
-let _knownNotifIds = new Set();
-
-function startNotifPolling() {
-  if (_notifPollInterval) return;
-  _notifPollInterval = setInterval(pollNotifications, 4000);
-  pollNotifications(); // immediate first call
-}
-
-function stopNotifPolling() {
-  if (_notifPollInterval) { clearInterval(_notifPollInterval); _notifPollInterval = null; }
-  _knownNotifIds.clear();
-}
-
-async function pollNotifications() {
-  try {
-    const res = await fetch('/api/notifications');
-    if (!res.ok) return;
-    const items = await res.json();
-
-    // Check for silence mode
-    const silenceItem = items.find(n => n.type === 'silence');
-    const isSilence = !!silenceItem;
-
-    // Show/hide silence banner (for non-commanders who can't toggle it)
-    const can = getRoleCan();
-    if (!can.silenceMode) {
-      showSilenceBanner(isSilence);
-    } else {
-      // Commander: sync button state to actual DB state
-      const dbHasSilence = !!silenceItem;
-      if (dbHasSilence && !silenceModeActive) {
-        silenceModeActive = true;
-        silenceNotifId = silenceItem.id;
-        document.getElementById('btn-silence')?.classList.add('active');
-        showSilenceBanner(true);
-      } else if (!dbHasSilence && silenceModeActive) {
-        silenceModeActive = false;
-        silenceNotifId = null;
-        document.getElementById('btn-silence')?.classList.remove('active');
-        showSilenceBanner(false);
-      }
-    }
-
-    // Show new REB dome / strike notifications
-    const banner = document.getElementById('notif-banner');
-    if (!banner) return;
-
-    items.forEach(n => {
-      if (_knownNotifIds.has(n.id)) return;
-      _knownNotifIds.add(n.id);
-
-      if (n.type === 'reb_dome') {
-        let d = {};
-        try { d = JSON.parse(n.data); } catch (_) {}
-        showNotif(n.id, 'reb', `🔵 КУПОЛ РЭБ активирован: <b>${d.name || 'РЭБ'}</b> · R=${d.radius || '?'}м · Частоты: ${d.freqs || '?'}`);
-        // Also reload markers to show dome
-        loadMarkersFromServer();
-      } else if (n.type === 'strike') {
-        let d = {};
-        try { d = JSON.parse(n.data); } catch (_) {}
-        // Only show to commander and reb
-        const role = currentUser?.role;
-        if (role === 'commander' || role === 'reb' || role === 'admin') {
-          showNotif(n.id, 'strike', `⚡ УДАР по союзной позиции: ${d.coords || '?'} · ${d.info || ''}`);
-          loadMarkersFromServer();
-        }
-      }
-    });
-
-    // Remove notifications no longer on server from known set
-    const serverIds = new Set(items.map(n => n.id));
-    _knownNotifIds.forEach(id => { if (!serverIds.has(id)) _knownNotifIds.delete(id); });
-  } catch (_) {}
-}
-
-function showNotif(id, type, html) {
-  const banner = document.getElementById('notif-banner');
-  if (!banner) return;
-  banner.style.pointerEvents = 'auto';
-  const div = document.createElement('div');
-  div.className = 'notif-item ' + type;
-  div.id = 'notif-' + id;
-  div.innerHTML = `<div style="flex:1;font-size:12px;color:#cbd5e1;line-height:1.4;">${html}</div><button class="notif-close" onclick="dismissNotif('${id}')">✕</button>`;
-  banner.appendChild(div);
-  setTimeout(() => dismissNotif(id), 30000);
-}
-
-function dismissNotif(id) {
-  const el = document.getElementById('notif-' + id);
-  if (el) el.remove();
-}
-
-/* ─── Admin: Add News ───────────────────────────────────── */
-// News items stored in-memory (persisted via localStorage for demo)
-let adminNewsExtra = JSON.parse(localStorage.getItem('pulse_news_extra') || '[]');
-
-function openAddNewsPopup() {
-  const popup = document.getElementById('add-news-popup');
-  popup.style.display = 'flex';
-  document.getElementById('news-title-input').value = '';
-  document.getElementById('news-excerpt-input').value = '';
-  document.getElementById('news-body-input').value = '';
-  document.getElementById('news-badge-input').value = '';
-}
-
-function submitAdminNews() {
-  const title   = document.getElementById('news-title-input').value.trim();
-  const excerpt = document.getElementById('news-excerpt-input').value.trim();
-  const body    = document.getElementById('news-body-input').value.trim();
-  const badge   = document.getElementById('news-badge-input').value.trim() || 'Новость';
-  if (!title) { alert('Введите заголовок'); return; }
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }) +
-    ' · ' + now.toISOString().slice(11,16) + ' UTC';
-  const item = { id: Date.now(), badge, date: dateStr, title, excerpt: excerpt || title, body: body || excerpt, mediaType: 'none', mediaSrc: '', gallery: [] };
-  adminNewsExtra.unshift(item);
-  localStorage.setItem('pulse_news_extra', JSON.stringify(adminNewsExtra));
-  document.getElementById('add-news-popup').style.display = 'none';
-  renderNewsList();
-}
-
 /* ═══════════════════════════════════════════
    CLOCK
 ═══════════════════════════════════════════ */
@@ -2734,6 +2222,7 @@ popupStyle.textContent = `
   .pop-btn:hover { border-color: rgba(249,115,22,.5); color: #f97316; background: rgba(249,115,22,.08); }
   .pop-btn-red { border-color: rgba(239,68,68,.4); color: #ef4444; background: rgba(239,68,68,.07); }
   .pop-btn-red:hover { border-color: #ef4444; background: rgba(239,68,68,.15); color: #f87171; }
+  body.pulse-cmd .admin-cmd-only { display: flex !important; }
 `;
 document.head.appendChild(popupStyle);
 
@@ -2775,14 +2264,8 @@ Object.entries(TARGETS).forEach(([id, d]) => {
 
 function destroyMarker(id) {
   if (markerRefs[id]) { markerRefs[id].remove(); delete markerRefs[id]; }
-  if (serverMarkerRefs[id]) {
-    if (serverMarkerRefs[id].circle) serverMarkerRefs[id].circle.remove();
-    if (serverMarkerRefs[id].handle) serverMarkerRefs[id].handle.remove();
-    if (typeof serverMarkerRefs[id].remove === 'function') serverMarkerRefs[id].remove();
-    delete serverMarkerRefs[id];
-  }
   map.closePopup();
-  fetch('/api/markers/' + id, { method: 'DELETE', headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {} }).catch(() => {});
+  fetch('/api/markers/' + id, { method: 'DELETE' }).catch(() => {});
 }
 
 /* ── REB zone circle ───────────────────────────── */
@@ -3180,48 +2663,21 @@ function mfpClearFiles() {
   if (grid) grid.innerHTML = '';
 }
 
-let rebMarkMode = false;
-let rerMarkMode = false;
-let pendingRebLatLng = null;
-let pendingRerLatLng = null;
-
-function deactivateAllMarkModes() {
-  markMode    = false;
-  rebMarkMode = false;
-  rerMarkMode = false;
-  document.getElementById('btn-mark')?.classList.remove('active');
-  document.getElementById('btn-reb-mark')?.classList.remove('active');
-  document.getElementById('btn-rer-mark')?.classList.remove('active');
-  map.getContainer().style.cursor = '';
-  closeMarkPopup();
-  cancelRebMark();
-  cancelRerMark();
-  if (rulerActive) { rulerActive = false; document.getElementById('btn-ruler')?.classList.remove('active'); rulerClear(); }
-}
-
 function toggleMarkMode() {
-  if (markMode) { deactivateAllMarkModes(); return; }
-  deactivateAllMarkModes();
-  markMode = true;
-  document.getElementById('btn-mark')?.classList.add('active');
-  if (rulerActive) { rulerActive = false; document.getElementById('btn-ruler')?.classList.remove('active'); rulerClear(); }
-  map.getContainer().style.cursor = 'cell';
-}
-
-function toggleRebMarkMode() {
-  if (rebMarkMode) { deactivateAllMarkModes(); return; }
-  deactivateAllMarkModes();
-  rebMarkMode = true;
-  document.getElementById('btn-reb-mark')?.classList.add('active');
-  map.getContainer().style.cursor = 'crosshair';
-}
-
-function toggleRerMarkMode() {
-  if (rerMarkMode) { deactivateAllMarkModes(); return; }
-  deactivateAllMarkModes();
-  rerMarkMode = true;
-  document.getElementById('btn-rer-mark')?.classList.add('active');
-  map.getContainer().style.cursor = 'crosshair';
+  markMode = !markMode;
+  document.getElementById('btn-mark').classList.toggle('active', markMode);
+  if (markMode) {
+    // Деактивировать линейку если была включена
+    if (rulerActive) {
+      rulerActive = false;
+      document.getElementById('btn-ruler').classList.remove('active');
+      rulerClear();
+    }
+    map.getContainer().style.cursor = 'cell';
+  } else {
+    map.getContainer().style.cursor = '';
+    closeMarkPopup();
+  }
 }
 
 /* ── Открыть форму попапа ────────────────────── */
@@ -3289,7 +2745,7 @@ function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, t
       const isVideo = /\.(mp4|webm|mov|mkv)$/i.test(u);
       return isVideo
         ? `<video src="${u}" style="width:60px;height:46px;object-fit:cover;border:1px solid rgba(249,115,22,.25);" muted></video>`
-        : `<img src="${u}" style="width:60px;height:46px;object-fit:cover;border:1px solid rgba(249,115,22,.25);">`;
+        : `<img src="${u}" style="width:60px;height:46px;object-fit:cover;border:1px solid rgba(249,115,22,.25);cursor:zoom-in;" onclick="openLightbox(this.src)" title="Нажмите для увеличения">`;
     }).join('');
     attachHtml = `<div class="pop-row" style="border-top:1px solid #1e293b;padding-top:5px;margin-top:3px;flex-wrap:wrap;gap:3px;">${thumbs}</div>`;
   }
@@ -3299,7 +2755,7 @@ function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, t
       <div class="pop-inner" style="min-width:220px;">
         <div class="pop-title" style="color:${color};">${name}</div>
         <div class="pop-row"><span class="pop-lbl">Тип:</span><span class="pop-val">${typeLabel}</span></div>
-        <div class="pop-row"><span class="pop-lbl">Приоритет:</span><span class="pop-val" style="color:${prioColor};font-weight:700;" data-prio="${prio}">${prioLabel}</span></div>
+        <div class="pop-row"><span class="pop-lbl">Приоритет:</span><span class="pop-val" style="color:${prioColor};font-weight:700;">${prioLabel}</span></div>
         <div class="pop-row" style="border-top:1px solid #1e293b;padding-top:5px;margin-top:3px;">
           <span class="pop-lbl" style="color:#f97316;font-size:9px;letter-spacing:.07em;">СК-42</span>
         </div>
@@ -3313,32 +2769,13 @@ function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, t
         ${attachHtml}
         <div class="pop-btns">
           <button class="pop-btn pop-btn-red" onclick="destroyMarker('${mid}')">УНИЧТОЖЕНО</button>
-          ${getRoleCan().changePriority ? `<button class="pop-btn pop-btn-prio" onclick="changeMarkerPriority('${mid}', this)">ПРИОРИТЕТ ↑</button>` : ''}
+          <button class="pop-btn admin-cmd-only" onclick="openPrioDialog('${mid}','${name}','${prio}')" style="display:none;">ПРИОРИТЕТ</button>
           <button class="pop-btn" onclick="map.closePopup()">СКРЫТЬ</button>
         </div>
       </div>
     `, { className:'lf-popup', closeButton:true, maxWidth:300 });
   markerRefs[mid] = m;
   return m;
-}
-
-async function changeMarkerPriority(markerId, btn) {
-  const prioOrder = ['low', 'med', 'high', 'crit'];
-  const prioLabels = { low:'Низкий', med:'Средний', high:'Высокий', crit:'КРИТ' };
-  // Find current marker and its priority from popup
-  const popup = btn.closest('.pop-inner');
-  const prioEl = popup ? popup.querySelector('.pop-val[data-prio]') : null;
-  let cur = prioEl ? prioEl.dataset.prio : 'med';
-  const idx = prioOrder.indexOf(cur);
-  const next = prioOrder[Math.min(idx + 1, prioOrder.length - 1)];
-  try {
-    await fetch('/api/markers/' + markerId, {
-      method: 'PATCH',
-      headers: apiHeaders(),
-      body: JSON.stringify({ priority: next }),
-    });
-    if (prioEl) { prioEl.dataset.prio = next; prioEl.textContent = prioLabels[next]; }
-  } catch (_) {}
 }
 
 async function confirmMark() {
@@ -3378,13 +2815,13 @@ async function confirmMark() {
   try {
     const res = await fetch('/api/markers', {
       method: 'POST',
-      headers: apiHeaders(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         lat, lng,
         name, type: typeKey, color, priority: prio,
         info: info === '—' ? '' : info,
         coords_x: sk.X, coords_y: sk.Y, zone: sk.zone,
-        marker_role: 'standard',
+        attachments: attachUrls,
       }),
     });
     if (res.ok) {
@@ -3397,391 +2834,33 @@ async function confirmMark() {
     name, color, typeLabel, prio, info, sk, ts, attachUrls).openPopup();
 }
 
-/* ─── Server marker references (separate from static TARGETS) ─────── */
-const serverMarkerRefs = {};  // id → Leaflet marker or { circle, handle }
-
-function computeOffsetLatLng(lat, lng, distMeters, bearingDeg) {
-  const R = 6371000;
-  const δ = distMeters / R;
-  const θ = bearingDeg * Math.PI / 180;
-  const φ1 = lat * Math.PI / 180;
-  const λ1 = lng * Math.PI / 180;
-  const φ2 = Math.asin(Math.sin(φ1)*Math.cos(δ) + Math.cos(φ1)*Math.sin(δ)*Math.cos(θ));
-  const λ2 = λ1 + Math.atan2(Math.sin(θ)*Math.sin(δ)*Math.cos(φ1), Math.cos(δ)-Math.sin(φ1)*Math.sin(φ2));
-  return L.latLng(φ2*180/Math.PI, λ2*180/Math.PI);
-}
-
-function addRebDomeToMap(mid, lat, lng, name, radius, extra) {
-  // Remove old if exists
-  if (serverMarkerRefs[mid]) {
-    if (serverMarkerRefs[mid].circle) serverMarkerRefs[mid].circle.remove();
-    if (serverMarkerRefs[mid].handle) serverMarkerRefs[mid].handle.remove();
-    delete serverMarkerRefs[mid];
-  }
-  let extra_data = {};
-  try { extra_data = JSON.parse(extra || '{}'); } catch (_) {}
-  const r = parseFloat(radius) || 150;
-
-  // Gradient dome circle
-  const circle = L.circle([lat, lng], {
-    radius: r,
-    color: '#8b5cf6',
-    weight: 1.5,
-    dashArray: '6 4',
-    fillColor: '#8b5cf6',
-    fillOpacity: 0.08,
-  }).addTo(map);
-
-  const tipText = `${name} · R=${r}м · ${extra_data.freqs || ''}`;
-  circle.bindTooltip(tipText, { permanent: true, direction: 'top', className: 'lf-reb-tip', offset: [0, -4] });
-  circle.bindPopup(`<div class="pop-inner" style="min-width:200px;">
-    <div class="pop-title" style="color:#8b5cf6;">${name}</div>
-    <div class="pop-row"><span class="pop-lbl">Тип:</span><span class="pop-val">${extra_data.reb_type === 'directional' ? 'Направленная' : 'Круговая'}</span></div>
-    <div class="pop-row"><span class="pop-lbl">Радиус:</span><span class="pop-val">${r} м</span></div>
-    <div class="pop-row"><span class="pop-lbl">Работа:</span><span class="pop-val">${extra_data.worktime || '?'} ч</span></div>
-    <div class="pop-row"><span class="pop-lbl">Частоты:</span><span class="pop-val">${extra_data.freqs || '—'}</span></div>
-    <div class="pop-btns">
-      <button class="pop-btn pop-btn-red" onclick="destroyServerMarker('${mid}')">ОТКЛЮЧИТЬ</button>
-      <button class="pop-btn" onclick="map.closePopup()">СКРЫТЬ</button>
-    </div>
-  </div>`, { className: 'lf-popup', closeButton: true, maxWidth: 260 });
-
-  // Draggable handle at east edge for radius resize (only reb and admin can drag)
-  const canChangeRadius = getRoleCan().rebDome;
-  const edgeLatLng = computeOffsetLatLng(lat, lng, r, 90);
-  const handleCursor = canChangeRadius ? 'ew-resize' : 'default';
-  const handleIcon = L.divIcon({
-    html: `<div style="width:12px;height:12px;border-radius:50%;background:#8b5cf6;border:2px solid #fff;box-shadow:0 0 6px rgba(139,92,246,.7);cursor:${handleCursor};"></div>`,
-    className: '', iconSize: [12,12], iconAnchor: [6,6]
-  });
-  const handle = L.marker(edgeLatLng, { icon: handleIcon, draggable: canChangeRadius, title: canChangeRadius ? 'Перетащите для изменения радиуса' : '' }).addTo(map);
-
-  if (canChangeRadius) {
-    handle.on('drag', function(e) {
-      const center = L.latLng(lat, lng);
-      const newR = Math.round(center.distanceTo(e.target.getLatLng()));
-      circle.setRadius(newR);
-      circle.closeTooltip();
-      circle.bindTooltip(`${name} · R=${newR}м`, { permanent: true, direction: 'top', className: 'lf-reb-tip', offset: [0, -4] });
-    });
-
-    handle.on('dragend', async function(e) {
-      const center = L.latLng(lat, lng);
-      const newR = Math.round(center.distanceTo(e.target.getLatLng()));
-      // Snap handle to true east edge
-      handle.setLatLng(computeOffsetLatLng(lat, lng, newR, 90));
-      // Persist new radius
-      try {
-        await fetch('/api/markers/' + mid, {
-          method: 'PATCH',
-          headers: apiHeaders(),
-          body: JSON.stringify({ radius: newR }),
-        });
-      } catch (_) {}
-    });
-  }
-
-  serverMarkerRefs[mid] = { circle, handle, type: 'reb_dome' };
-}
-
-function addEnemyTargetToMap(mid, lat, lng, name, color, extra) {
-  if (serverMarkerRefs[mid]) { serverMarkerRefs[mid].remove(); delete serverMarkerRefs[mid]; }
-  let extra_data = {};
-  try { extra_data = JSON.parse(extra || '{}'); } catch (_) {}
-
-  const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">
-    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-  </svg>`;
-  const icon = L.divIcon({ html: svgIcon, className: 'enemy-target-icon', iconSize:[24,24], iconAnchor:[12,12], popupAnchor:[0,-14] });
-
-  const typeLabel = extra_data.target_type === 'fpv' ? 'ФПВ-квадрокоптер' : 'Агро-дрон';
-  const isStrike = !!extra_data.strike;
-  const opacity = isStrike ? 0.6 : 1;
-
-  const m = L.marker([lat, lng], { icon, opacity })
-    .addTo(map)
-    .bindPopup(`<div class="pop-inner" style="min-width:220px;">
-      <div class="pop-title" style="color:${color};">${name}${isStrike ? ' ⚡' : ''}</div>
-      ${isStrike ? '<div class="pop-row" style="color:#ef4444;font-weight:700;border:1px solid rgba(239,68,68,.3);padding:4px 6px;margin-bottom:6px;">УДАР ПО ПОЗИЦИИ</div>' : ''}
-      <div class="pop-row"><span class="pop-lbl">Тип:</span><span class="pop-val">${typeLabel}</span></div>
-      <div class="pop-row"><span class="pop-lbl">Частота:</span><span class="pop-val">${extra_data.freq || '?'} МГц</span></div>
-      <div class="pop-row"><span class="pop-lbl">Направление:</span><span class="pop-val" style="max-width:130px;white-space:normal;text-align:right;">${extra_data.direction || '—'}</span></div>
-      <div class="pop-row"><span class="pop-lbl">Высота:</span><span class="pop-val">${extra_data.height || '?'} м</span></div>
-      <div class="pop-btns">
-        <button class="pop-btn pop-btn-red" onclick="destroyServerMarker('${mid}')">УНИЧТОЖЕНО</button>
-        <button class="pop-btn" onclick="map.closePopup()">СКРЫТЬ</button>
-      </div>
-    </div>`, { className: 'lf-popup', closeButton: true, maxWidth: 280 });
-
-  serverMarkerRefs[mid] = m;
-}
-
-async function destroyServerMarker(id) {
-  map.closePopup();
-  if (serverMarkerRefs[id]) {
-    if (serverMarkerRefs[id].circle) serverMarkerRefs[id].circle.remove();
-    if (serverMarkerRefs[id].handle) serverMarkerRefs[id].handle.remove();
-    if (typeof serverMarkerRefs[id].remove === 'function') serverMarkerRefs[id].remove();
-    delete serverMarkerRefs[id];
-  }
-  try { await fetch('/api/markers/' + id, { method: 'DELETE', headers: apiHeaders() }); } catch (_) {}
-}
-
 /* Загрузить маркеры с сервера при старте */
 async function loadMarkersFromServer() {
   try {
     const res = await fetch('/api/markers');
     if (!res.ok) return;
     const markers = await res.json();
-    const now = new Date().toISOString().replace('T',' ').slice(0,19);
     const TYPE_LABELS = {
       tech:'Техника', infantry:'Живая сила', reb:'РЭБ', arty:'Арт-позиция',
       agro:'Агро-дроны', 'enemy-eq':'Обор. противника', delivery:'Доставка пехоте'
     };
-    const role = currentUser?.role || 'pilot';
-    const can  = getRoleCan();
-
     for (const m of markers) {
-      // Skip if already rendered
-      if (markerRefs[m.id] || serverMarkerRefs[m.id]) continue;
-
-      // Skip expired markers
-      if (m.expires_at && m.expires_at < now) continue;
-
-      const mrole = m.marker_role || '';
-
-      // Role-based filtering
-      if (mrole === 'reb_dome') {
-        // All roles see REB domes
-        addRebDomeToMap(m.id, m.lat, m.lng, m.name, m.radius || 150, m.extra || '{}');
-        continue;
-      }
-
-      if (mrole === 'enemy_target' || mrole === 'enemy_agro' || mrole === 'enemy_fpv') {
-        // REB sees only enemy targets; all others see them too
-        const color = m.color || '#ef4444';
-        addEnemyTargetToMap(m.id, m.lat, m.lng, m.name, color, m.extra || '{}');
-        continue;
-      }
-
-      if (mrole === 'strike') {
-        // Strike markers: visible to commander and reb only
-        if (role === 'commander' || role === 'reb' || role === 'admin') {
-          const color = '#ef4444';
-          addEnemyTargetToMap(m.id, m.lat, m.lng, '⚡ ' + m.name, color, m.extra || '{}');
-        }
-        continue;
-      }
-
-      // Standard markers
-      // REB specialist sees only enemy-related markers (already handled above)
-      if (role === 'reb') continue; // reb doesn't see standard markers
-
+      if (markerRefs[m.id]) continue; // уже на карте (TARGETS)
       const sk = { X: m.coords_x, Y: m.coords_y, zone: m.zone };
       const typeLabel = TYPE_LABELS[m.type] || m.type || '—';
-      const marker = addMarkerToMap(m.id, m.lat, m.lng, m.name, m.color || '#f97316',
-        typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', []);
-      serverMarkerRefs[m.id] = marker;
+      addMarkerToMap(m.id, m.lat, m.lng, m.name, m.color || '#f97316',
+        typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', m.attachments || []);
     }
   } catch (_) {}
 }
-// Initial load will happen after auth check
-// loadMarkersFromServer(); — called after checkStoredAuth
+loadMarkersFromServer();
 
 /* Клик по карте — открыть форму */
 map.on('click', function(e) {
-  if (rulerActive) return;
+  if (!markMode || rulerActive) return;
   L.DomEvent.stopPropagation(e);
-  if (markMode)    { openMarkPopup(e.latlng); return; }
-  if (rebMarkMode) { openRebPopup(e.latlng);  return; }
-  if (rerMarkMode) { openRerPopup(e.latlng);  return; }
+  openMarkPopup(e.latlng);
 });
-
-/* ─── REB Dome popup ──────────────────────────────────── */
-function openRebPopup(latlng) {
-  pendingRebLatLng = latlng;
-  const sk = formatSK42(latlng.lat, latlng.lng);
-  document.getElementById('reb-coords-display').innerHTML =
-    `<span style="color:#8b5cf6;letter-spacing:.02em;">СК&#8209;42</span>&nbsp;&nbsp;${sk.str}`;
-  document.getElementById('reb-name').value    = '';
-  document.getElementById('reb-radius').value  = '150';
-  document.getElementById('reb-worktime').value = '2';
-  document.getElementById('reb-freqs').value   = '';
-  document.querySelector('input[name="reb-type"][value="circle"]').checked = true;
-
-  const popup = document.getElementById('reb-popup');
-  const inner = document.getElementById('reb-inner');
-  popup.style.display = 'block';
-  popup.style.left = '0'; popup.style.top = '0';
-  const pt = map.latLngToContainerPoint(latlng);
-  const mcr = map.getContainer().getBoundingClientRect();
-  const pw = inner.offsetWidth || 310;
-  const ph = inner.offsetHeight || 340;
-  let x = mcr.left + pt.x - pw/2;
-  let y = mcr.top  + pt.y - ph - 18;
-  const mg = 12;
-  if (x < mg) x = mg;
-  if (x + pw > window.innerWidth - mg) x = window.innerWidth - pw - mg;
-  if (y < mg) y = mcr.top + pt.y + 18;
-  popup.style.left = x + 'px';
-  popup.style.top  = (window.scrollY + y) + 'px';
-  setTimeout(() => document.getElementById('reb-name').focus(), 80);
-}
-
-function cancelRebMark() {
-  document.getElementById('reb-popup').style.display = 'none';
-  pendingRebLatLng = null;
-}
-
-async function confirmRebMark() {
-  if (!pendingRebLatLng) return;
-  const latlng   = pendingRebLatLng;
-  const name     = document.getElementById('reb-name').value.trim() || 'РЭБ';
-  const rebType  = document.querySelector('input[name="reb-type"]:checked')?.value || 'circle';
-  const radius   = parseFloat(document.getElementById('reb-radius').value) || 150;
-  const worktime = parseFloat(document.getElementById('reb-worktime').value) || 2;
-  const freqs    = document.getElementById('reb-freqs').value.trim();
-  const sk       = formatSK42(latlng.lat, latlng.lng);
-  const ts       = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
-  cancelRebMark();
-
-  const extra = JSON.stringify({ reb_type: rebType, worktime, freqs });
-
-  let markerId = 'local_reb_' + Date.now();
-  try {
-    const res = await fetch('/api/markers', {
-      method: 'POST',
-      headers: apiHeaders(),
-      body: JSON.stringify({
-        lat: latlng.lat, lng: latlng.lng, name,
-        type: 'reb_dome', color: '#8b5cf6', priority: 'high',
-        info: `Тип: ${rebType} · ${worktime}ч · ${freqs}`,
-        coords_x: sk.X, coords_y: sk.Y, zone: sk.zone,
-        radius, extra, marker_role: 'reb_dome',
-      }),
-    });
-    if (res.ok) {
-      const j = await res.json();
-      markerId = j.id;
-    }
-  } catch (_) {}
-
-  addRebDomeToMap(markerId, latlng.lat, latlng.lng, name, radius, extra);
-
-  // Notify all users
-  try {
-    await fetch('/api/notifications', {
-      method: 'POST',
-      headers: apiHeaders(),
-      body: JSON.stringify({
-        type: 'reb_dome',
-        data: JSON.stringify({ name, radius, freqs, coords: `X:${sk.X} Y:${sk.Y}` }),
-      }),
-    });
-  } catch (_) {}
-
-  rebMarkMode = false;
-  document.getElementById('btn-reb-mark')?.classList.remove('active');
-  map.getContainer().style.cursor = '';
-}
-
-/* ─── RER Enemy Target popup ────────────────────────────── */
-function openRerPopup(latlng) {
-  pendingRerLatLng = latlng;
-  const sk = formatSK42(latlng.lat, latlng.lng);
-  document.getElementById('rer-coords-display').innerHTML =
-    `<span style="color:#ef4444;letter-spacing:.02em;">СК&#8209;42</span>&nbsp;&nbsp;${sk.str}`;
-  document.getElementById('rer-freq').value      = '';
-  document.getElementById('rer-direction').value = '';
-  document.getElementById('rer-height').value    = '50';
-  document.getElementById('rer-strike').checked  = false;
-  document.getElementById('rer-strike-info').style.display = 'none';
-  document.querySelector('input[name="rer-type"][value="agro"]').checked = true;
-
-  const popup = document.getElementById('rer-popup');
-  const inner = document.getElementById('rer-inner');
-  popup.style.display = 'block';
-  popup.style.left = '0'; popup.style.top = '0';
-  const pt = map.latLngToContainerPoint(latlng);
-  const mcr = map.getContainer().getBoundingClientRect();
-  const pw = inner.offsetWidth || 320;
-  const ph = inner.offsetHeight || 370;
-  let x = mcr.left + pt.x - pw/2;
-  let y = mcr.top  + pt.y - ph - 18;
-  const mg = 12;
-  if (x < mg) x = mg;
-  if (x + pw > window.innerWidth - mg) x = window.innerWidth - pw - mg;
-  if (y < mg) y = mcr.top + pt.y + 18;
-  popup.style.left = x + 'px';
-  popup.style.top  = (window.scrollY + y) + 'px';
-  setTimeout(() => document.getElementById('rer-freq').focus(), 80);
-}
-
-function cancelRerMark() {
-  document.getElementById('rer-popup').style.display = 'none';
-  pendingRerLatLng = null;
-}
-
-async function confirmRerMark() {
-  if (!pendingRerLatLng) return;
-  const latlng    = pendingRerLatLng;
-  const targetType = document.querySelector('input[name="rer-type"]:checked')?.value || 'agro';
-  const freq      = document.getElementById('rer-freq').value.trim();
-  const direction = document.getElementById('rer-direction').value.trim();
-  const height    = document.getElementById('rer-height').value || '50';
-  const isStrike  = document.getElementById('rer-strike').checked;
-  const sk        = formatSK42(latlng.lat, latlng.lng);
-  const ts        = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
-  const typeLabel = targetType === 'fpv' ? 'ФПВ-квадрокоптер' : 'Агро-дрон';
-  const name      = (isStrike ? '⚡ УДАР · ' : '') + typeLabel;
-  cancelRerMark();
-
-  const extra = JSON.stringify({ target_type: targetType, freq, direction, height, strike: isStrike });
-  const color = isStrike ? '#ef4444' : '#f59e0b';
-  const marker_role = isStrike ? 'strike' : 'enemy_target';
-
-  let markerId = 'local_rer_' + Date.now();
-  try {
-    const payload = {
-      lat: latlng.lat, lng: latlng.lng, name,
-      type: targetType, color, priority: isStrike ? 'crit' : 'high',
-      info: `${freq} МГц · ${direction} · ${height}м`,
-      coords_x: sk.X, coords_y: sk.Y, zone: sk.zone,
-      extra, marker_role,
-    };
-    if (isStrike) payload.expires_in_minutes = 30;
-    const res = await fetch('/api/markers', {
-      method: 'POST',
-      headers: apiHeaders(),
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
-      const j = await res.json();
-      markerId = j.id;
-    }
-  } catch (_) {}
-
-  addEnemyTargetToMap(markerId, latlng.lat, latlng.lng, name, color, extra);
-
-  // Notify commander and reb about strike
-  if (isStrike) {
-    try {
-      await fetch('/api/notifications', {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({
-          type: 'strike',
-          data: JSON.stringify({ coords: `X:${sk.X} Y:${sk.Y}`, info: `${typeLabel} · ${freq} МГц` }),
-          expires_in_minutes: 30,
-        }),
-      });
-    } catch (_) {}
-  }
-
-  rerMarkMode = false;
-  document.getElementById('btn-rer-mark')?.classList.remove('active');
-  map.getContainer().style.cursor = '';
-}
 
 // mark-popup Escape handled in master keydown listener
 
@@ -3843,13 +2922,11 @@ async function sendMsg() {
   if (!txt) return;
   inp.value = '';
   const t = new Date().toTimeString().slice(0, 5);
-  const callsign = currentUser?.callsign || currentUser?.username || 'Вы';
-  const chatRole = currentUser?.role === 'commander' ? 'cmd' : 'self';
   try {
     await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: txt, ts: t, user: callsign, role: chatRole }),
+      body: JSON.stringify({ text: txt, ts: t, user: 'Вы', role: 'self' }),
     });
     await pollChat();
   } catch (_) {
@@ -4419,22 +3496,16 @@ Y: [восточная проекция, 7 цифр]
 /* ═══════════════════════════════════════════
    NEWS RENDER
 ═══════════════════════════════════════════ */
+function _allNews() {
+  return [..._newsFromApi, ...NEWS];
+}
+
 function renderNewsList() {
   const list = document.getElementById('news-list');
-  // Merge admin-added news with static news
-  const adminNews = (typeof adminNewsExtra !== 'undefined' ? adminNewsExtra : []).map(n => ({...n, _admin: true}));
-  const allNews = [...adminNews, ...NEWS];
-  list.innerHTML = allNews.map(n => {
-    let media = '';
-    if (n._admin) {
-      media = `<div style="height:80px;background:rgba(249,115,22,.08);border-bottom:1px solid rgba(249,115,22,.2);display:flex;align-items:center;justify-content:center;">
-        <span style="font-size:11px;color:#334155;letter-spacing:.08em;">// БЕЗ МЕДИА</span>
-      </div>`;
-    } else if (n.mediaType === 'video') {
-      media = `<iframe class="news-card-media-video" src="${n.mediaSrc}" frameborder="0" allowfullscreen title="${n.title}"></iframe>`;
-    } else if (n.mediaSrc) {
-      media = `<img class="news-card-media" src="${n.mediaSrc}" alt="${n.title}" loading="lazy">`;
-    }
+  list.innerHTML = _allNews().map(n => {
+    const media = n.mediaType === 'video'
+      ? `<iframe class="news-card-media-video" src="${n.mediaSrc}" frameborder="0" allowfullscreen title="${n.title}"></iframe>`
+      : `<img class="news-card-media" src="${n.mediaSrc}" alt="${n.title}" loading="lazy">`;
     return `<div class="news-card">
       ${media}
       <div class="news-card-body">
@@ -4444,7 +3515,7 @@ function renderNewsList() {
         </div>
         <div class="news-card-title">${n.title}</div>
         <div class="news-card-excerpt">${n.excerpt}</div>
-        <button class="news-card-read" onclick="openArticleById(${n.id}, ${n._admin ? 'true' : 'false'})">
+        <button class="news-card-read" onclick="openArticle(${n.id})">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
           Читать полностью
         </button>
@@ -4453,25 +3524,8 @@ function renderNewsList() {
   }).join('');
 }
 
-function openArticleById(id, isAdmin) {
-  if (isAdmin) {
-    const n = (typeof adminNewsExtra !== 'undefined' ? adminNewsExtra : []).find(x => x.id === id);
-    if (!n) return;
-    document.getElementById('news-modal-content').innerHTML = `
-      <div class="art-title">${n.title}</div>
-      <div class="art-meta"><span class="art-date">${n.date}</span><span class="art-badge">${n.badge}</span></div>
-      <div class="art-body">${(n.body || '').replace(/\n/g, '<br>')}</div>
-    `;
-  } else {
-    openArticle(id);
-    return;
-  }
-  document.getElementById('news-modal').style.display = 'block';
-  document.getElementById('news-modal').scrollTop = 0;
-}
-
 function openArticle(id) {
-  const n = NEWS.find(x => x.id === id);
+  const n = _allNews().find(x => x.id === id);
   if (!n) return;
 
   const hero = n.mediaType === 'video'
@@ -4519,9 +3573,11 @@ function closeLightbox() {
 /* ═══════════════════════════════════════════
    NEWS OVERLAY OPEN / CLOSE
 ═══════════════════════════════════════════ */
-function openNews() {
+async function openNews() {
   closeMarkPopup();
+  await loadNewsFromApi();
   renderNewsList();
+  _updateAuthUI();
   document.getElementById('news-overlay').style.display = 'block';
   document.getElementById('news-overlay').scrollTop = 0;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -4590,70 +3646,362 @@ function masterToggle(master) {
     cb.checked = master.checked;
   });
 }
+/* ═══════════════════════════════════════════
+   AUTH STATE MANAGEMENT
+═══════════════════════════════════════════ */
+window._pulseUser = null;
+const _ptkKey = 'pulse_token';
+
+function _getToken() { return localStorage.getItem(_ptkKey); }
+
+async function initAuth() {
+  const token = _getToken();
+  if (!token) return;
+  try {
+    const res = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (res.ok) {
+      window._pulseUser = await res.json();
+      _updateAuthUI();
+    } else {
+      localStorage.removeItem(_ptkKey);
+    }
+  } catch (_) {}
+}
+
+function _updateAuthUI() {
+  const callsignEl = document.getElementById('user-callsign');
+  const btn = document.getElementById('user-btn');
+  if (window._pulseUser) {
+    const roleNames = { admin:'Администратор', commander:'Командир', pilot:'Пилот', scout:'Разведчик', reb:'РЭБ', rer:'РЭР' };
+    callsignEl.textContent = window._pulseUser.callsign || window._pulseUser.username;
+    callsignEl.style.display = 'block';
+    btn.style.borderColor = 'rgba(249,115,22,.5)';
+    btn.style.color = '#f97316';
+    btn.title = roleNames[window._pulseUser.role] || window._pulseUser.role;
+    // Show priority button for admin/commander
+    const isCmd = window._pulseUser.role === 'admin' || window._pulseUser.role === 'commander';
+    document.body.classList.toggle('pulse-cmd', isCmd);
+    // Show/hide add news button
+    const addNewsBtn = document.getElementById('add-news-btn');
+    if (addNewsBtn) addNewsBtn.style.display = window._pulseUser.role === 'admin' ? 'inline-block' : 'none';
+  } else {
+    callsignEl.style.display = 'none';
+    btn.style.borderColor = '#1e293b';
+    btn.style.color = '#475569';
+    btn.title = 'Войти';
+    document.body.classList.remove('pulse-cmd');
+    const addNewsBtn = document.getElementById('add-news-btn');
+    if (addNewsBtn) addNewsBtn.style.display = 'none';
+  }
+}
+
+function toggleAuthMenu() {
+  const modal = document.getElementById('login-modal');
+  const isOpen = modal.style.display === 'flex';
+  if (isOpen) { closeLoginModal(); return; }
+  openLoginModal();
+}
+
+function openLoginModal() {
+  const modal = document.getElementById('login-modal');
+  const formWrap = document.getElementById('login-form-wrap');
+  const userInfo = document.getElementById('login-user-info');
+  if (window._pulseUser) {
+    formWrap.style.display = 'none';
+    userInfo.style.display = 'block';
+    const roleNames = { admin:'Администратор', commander:'Командир', pilot:'Пилот', scout:'Разведчик', reb:'Специалист РЭБ', rer:'Специалист РЭР' };
+    document.getElementById('login-user-name').textContent = window._pulseUser.callsign || window._pulseUser.username;
+    document.getElementById('login-user-role').textContent = (roleNames[window._pulseUser.role] || window._pulseUser.role).toUpperCase();
+    document.getElementById('login-modal-title').textContent = 'Профиль';
+  } else {
+    formWrap.style.display = 'block';
+    userInfo.style.display = 'none';
+    document.getElementById('login-modal-title').textContent = 'Авторизация';
+    document.getElementById('login-error').style.display = 'none';
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+  }
+  modal.style.display = 'flex';
+  if (!window._pulseUser) setTimeout(() => document.getElementById('login-username').focus(), 60);
+}
+
+function closeLoginModal() {
+  document.getElementById('login-modal').style.display = 'none';
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!username || !password) { errEl.textContent = 'Введите логин и пароль'; errEl.style.display = 'block'; return; }
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      errEl.textContent = j.detail || 'Неверный логин или пароль';
+      errEl.style.display = 'block';
+      return;
+    }
+    const j = await res.json();
+    localStorage.setItem(_ptkKey, j.token);
+    window._pulseUser = j.user;
+    _updateAuthUI();
+    closeLoginModal();
+  } catch (_) {
+    errEl.textContent = 'Ошибка соединения';
+    errEl.style.display = 'block';
+  }
+}
+
+async function doLogout() {
+  const token = _getToken();
+  if (token) {
+    fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } }).catch(() => {});
+    localStorage.removeItem(_ptkKey);
+  }
+  window._pulseUser = null;
+  _updateAuthUI();
+  closeLoginModal();
+}
+
+// Init auth on page load
+initAuth();
+
+/* ═══════════════════════════════════════════
+   PRIORITY CHANGE DIALOG
+═══════════════════════════════════════════ */
+let _prioDlgMarkerId = null;
+
+function openPrioDialog(mid, name, currentPrio) {
+  if (!window._pulseUser || (window._pulseUser.role !== 'admin' && window._pulseUser.role !== 'commander')) return;
+  _prioDlgMarkerId = mid;
+  document.getElementById('prio-dialog-name').textContent = name;
+  const radio = document.querySelector(`input[name="prio-dlg"][value="${currentPrio}"]`);
+  if (radio) radio.checked = true;
+  document.getElementById('prio-dialog').style.display = 'flex';
+  map.closePopup();
+}
+
+function closePrioDialog() {
+  document.getElementById('prio-dialog').style.display = 'none';
+  _prioDlgMarkerId = null;
+}
+
+async function confirmPrioChange() {
+  if (!_prioDlgMarkerId) return;
+  const prio = document.querySelector('input[name="prio-dlg"]:checked')?.value;
+  if (!prio) return;
+  const token = _getToken();
+  if (!token) return;
+  try {
+    const res = await fetch('/api/markers/' + _prioDlgMarkerId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ priority: prio }),
+    });
+    if (res.ok) {
+      // Rebuild marker popup with new priority
+      const marker = markerRefs[_prioDlgMarkerId];
+      if (marker) {
+        const content = marker.getPopup().getContent();
+        const prioColor = PRIO_COLORS[prio] || '#f59e0b';
+        const prioLabel = PRIO_LABELS[prio] || prio;
+        const updated = content.replace(
+          /(<span class="pop-val" style="color:[^"]*;font-weight:700;">)[^<]*/,
+          `$1${prioLabel}`
+        ).replace(
+          /color:[^;]*;font-weight:700;/,
+          `color:${prioColor};font-weight:700;`
+        );
+        marker.getPopup().setContent(updated);
+      }
+      closePrioDialog();
+    }
+  } catch (_) {}
+}
+
+/* ═══════════════════════════════════════════
+   NEWS: LOAD FROM API + STATIC MERGE
+═══════════════════════════════════════════ */
+let _newsFromApi = [];
+
+async function loadNewsFromApi() {
+  try {
+    const res = await fetch('/api/news');
+    if (!res.ok) return;
+    const items = await res.json();
+    _newsFromApi = items.map(n => ({
+      id: 'api_' + n.id,
+      _apiId: n.id,
+      badge: n.badge || '',
+      date: n.date || n.created_at,
+      title: n.title,
+      mediaType: n.media_type || 'image',
+      mediaSrc: n.media_src || '',
+      excerpt: n.excerpt || '',
+      body: n.body || '',
+      gallery: (() => { try { return JSON.parse(n.gallery || '[]'); } catch(_) { return []; } })(),
+    }));
+  } catch (_) {}
+}
+
+/* ═══════════════════════════════════════════
+   ADD NEWS FORM (admin)
+═══════════════════════════════════════════ */
+let _anFile = null;
+let _anFileUrl = null;
+let _anFileIsVideo = false;
+
+function openAddNewsForm() {
+  const form = document.getElementById('add-news-form');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  if (form.style.display === 'block') {
+    document.getElementById('an-title').value = '';
+    document.getElementById('an-badge').value = '';
+    document.getElementById('an-excerpt').value = '';
+    document.getElementById('an-body').value = '';
+    document.getElementById('an-error').style.display = 'none';
+    _anFile = null; _anFileUrl = null; _anFileIsVideo = false;
+    _anRenderPreview();
+  }
+}
+
+function anHandleDrop(e) {
+  e.preventDefault();
+  document.getElementById('an-drop').style.borderColor = 'rgba(249,115,22,.3)';
+  const file = e.dataTransfer.files[0];
+  if (file) anHandleFile(file);
+}
+
+function anHandleFile(file) {
+  if (!file) return;
+  const allowed = ['image/png','image/jpeg','image/gif','image/webp','video/mp4','video/webm','video/quicktime'];
+  if (!allowed.includes(file.type)) {
+    const err = document.getElementById('an-error');
+    err.textContent = 'Недопустимый тип файла';
+    err.style.display = 'block';
+    return;
+  }
+  if (file.size > 25 * 1024 * 1024) {
+    const err = document.getElementById('an-error');
+    err.textContent = 'Файл превышает 25 МБ';
+    err.style.display = 'block';
+    return;
+  }
+  document.getElementById('an-error').style.display = 'none';
+  _anFile = file;
+  _anFileUrl = URL.createObjectURL(file);
+  _anFileIsVideo = file.type.startsWith('video/');
+  _anRenderPreview();
+}
+
+function _anRenderPreview() {
+  const hint = document.getElementById('an-drop-hint');
+  const wrap = document.getElementById('an-preview-wrap');
+  if (!_anFile) {
+    hint.style.display = 'block';
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+  hint.style.display = 'none';
+  wrap.style.display = 'block';
+  if (_anFileIsVideo) {
+    wrap.innerHTML = `<video src="${_anFileUrl}" style="max-width:100%;max-height:140px;object-fit:contain;" controls muted></video>
+      <div style="font-size:9px;color:#64748b;margin-top:6px;">${_anFile.name}</div>
+      <button onclick="anClearFile()" style="margin-top:6px;background:none;border:1px solid #334155;color:#64748b;font-family:inherit;font-size:10px;padding:3px 10px;cursor:pointer;">Удалить</button>`;
+  } else {
+    wrap.innerHTML = `<img src="${_anFileUrl}" style="max-width:100%;max-height:140px;object-fit:contain;">
+      <div style="font-size:9px;color:#64748b;margin-top:6px;">${_anFile.name}</div>
+      <button onclick="anClearFile()" style="margin-top:6px;background:none;border:1px solid #334155;color:#64748b;font-family:inherit;font-size:10px;padding:3px 10px;cursor:pointer;">Удалить</button>`;
+  }
+}
+
+function anClearFile() {
+  _anFile = null; _anFileUrl = null; _anFileIsVideo = false;
+  document.getElementById('an-file-input').value = '';
+  _anRenderPreview();
+}
+
+async function submitAddNews() {
+  const title = document.getElementById('an-title').value.trim();
+  const errEl = document.getElementById('an-error');
+  errEl.style.display = 'none';
+  if (!title) { errEl.textContent = 'Введите заголовок'; errEl.style.display = 'block'; return; }
+  const token = _getToken();
+  if (!token) { errEl.textContent = 'Требуется авторизация'; errEl.style.display = 'block'; return; }
+
+  let mediaSrc = '';
+  let mediaType = 'image';
+
+  // Upload media file if selected
+  if (_anFile) {
+    try {
+      const fd = new FormData();
+      fd.append('file', _anFile);
+      const uploadRes = await fetch('/api/uploads', { method: 'POST', body: fd });
+      if (!uploadRes.ok) { errEl.textContent = 'Ошибка загрузки файла'; errEl.style.display = 'block'; return; }
+      const uploadJson = await uploadRes.json();
+      mediaSrc = uploadJson.url;
+      mediaType = _anFileIsVideo ? 'video' : 'image';
+    } catch (_) { errEl.textContent = 'Ошибка загрузки файла'; errEl.style.display = 'block'; return; }
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }) + ' · ' +
+    now.getUTCHours().toString().padStart(2,'0') + ':' + now.getUTCMinutes().toString().padStart(2,'0') + ' UTC';
+
+  try {
+    const res = await fetch('/api/news', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        title,
+        badge: document.getElementById('an-badge').value.trim(),
+        excerpt: document.getElementById('an-excerpt').value.trim(),
+        body: document.getElementById('an-body').value.trim(),
+        date: dateStr,
+        media_type: mediaType,
+        media_src: mediaSrc,
+        gallery: [],
+      }),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      errEl.textContent = j.detail || 'Ошибка публикации';
+      errEl.style.display = 'block';
+      return;
+    }
+    // Reload news list
+    document.getElementById('add-news-form').style.display = 'none';
+    await loadNewsFromApi();
+    renderNewsList();
+  } catch (_) {
+    errEl.textContent = 'Ошибка соединения';
+    errEl.style.display = 'block';
+  }
+}
+
 // Close on Escape
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     if (document.getElementById('lightbox').classList.contains('open')) { closeLightbox(); return; }
+    if (document.getElementById('prio-dialog').style.display === 'flex') { closePrioDialog(); return; }
+    if (document.getElementById('login-modal').style.display === 'flex') { closeLoginModal(); return; }
     if (document.getElementById('news-modal').style.display === 'block') { closeModal(); return; }
     if (document.getElementById('news-overlay').style.display === 'block') { closeNews(); return; }
     if (document.getElementById('lb-overlay').style.display === 'block') { closeLeaderboard(); return; }
     if (document.getElementById('support-overlay').style.display === 'block') { closeSupport(); return; }
     if (document.getElementById('settings-overlay').style.display === 'block') { closeSettings(); return; }
-    if (document.getElementById('add-news-popup').style.display === 'flex') { document.getElementById('add-news-popup').style.display='none'; return; }
     if (document.getElementById('mark-popup').style.display === 'block') { cancelMark(); return; }
-    if (document.getElementById('reb-popup').style.display === 'block') { cancelRebMark(); return; }
-    if (document.getElementById('rer-popup').style.display === 'block') { cancelRerMark(); return; }
     if (rulerActive) toggleRuler();
   }
 });
-
-/* ═══════════════════════════════════════════
-   INIT — check stored session, then show app or login
-═══════════════════════════════════════════ */
-// Markers polling for live updates
-setInterval(async function() {
-  if (!currentUser) return;
-  // Reload markers every 10 seconds to sync with other users
-  try {
-    const res = await fetch('/api/markers');
-    if (!res.ok) return;
-    const markers = await res.json();
-    const now = new Date().toISOString().replace('T',' ').slice(0,19);
-    const role = currentUser?.role || 'pilot';
-
-    for (const m of markers) {
-      if (markerRefs[m.id] || serverMarkerRefs[m.id]) continue;
-      if (m.expires_at && m.expires_at < now) continue;
-      const mrole = m.marker_role || '';
-
-      if (mrole === 'reb_dome') {
-        addRebDomeToMap(m.id, m.lat, m.lng, m.name, m.radius || 150, m.extra || '{}');
-      } else if (mrole === 'enemy_target' || mrole === 'enemy_agro' || mrole === 'enemy_fpv') {
-        addEnemyTargetToMap(m.id, m.lat, m.lng, m.name, m.color || '#ef4444', m.extra || '{}');
-      } else if (mrole === 'strike') {
-        if (role === 'commander' || role === 'reb' || role === 'admin') {
-          addEnemyTargetToMap(m.id, m.lat, m.lng, '⚡ ' + m.name, '#ef4444', m.extra || '{}');
-        }
-      } else if (mrole !== 'standard' && mrole !== '') {
-        // unknown role marker, skip
-      } else {
-        if (role === 'reb') continue;
-        const TYPE_LABELS = {
-          tech:'Техника', infantry:'Живая сила', reb:'РЭБ', arty:'Арт-позиция',
-          agro:'Агро-дроны', 'enemy-eq':'Обор. противника', delivery:'Доставка пехоте'
-        };
-        const sk = { X: m.coords_x, Y: m.coords_y, zone: m.zone };
-        const typeLabel = TYPE_LABELS[m.type] || m.type || '—';
-        const marker = addMarkerToMap(m.id, m.lat, m.lng, m.name, m.color || '#f97316',
-          typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', []);
-        serverMarkerRefs[m.id] = marker;
-      }
-    }
-  } catch (_) {}
-}, 10000);
-
-// Check for stored auth on page load
-checkStoredAuth();
 </script>
 </body>
 </html>
