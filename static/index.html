@@ -3446,36 +3446,40 @@ function addRebDomeToMap(mid, lat, lng, name, radius, extra) {
     </div>
   </div>`, { className: 'lf-popup', closeButton: true, maxWidth: 260 });
 
-  // Draggable handle at east edge for radius resize
+  // Draggable handle at east edge for radius resize (only reb and admin can drag)
+  const canChangeRadius = getRoleCan().rebDome;
   const edgeLatLng = computeOffsetLatLng(lat, lng, r, 90);
+  const handleCursor = canChangeRadius ? 'ew-resize' : 'default';
   const handleIcon = L.divIcon({
-    html: `<div style="width:12px;height:12px;border-radius:50%;background:#8b5cf6;border:2px solid #fff;box-shadow:0 0 6px rgba(139,92,246,.7);cursor:ew-resize;"></div>`,
+    html: `<div style="width:12px;height:12px;border-radius:50%;background:#8b5cf6;border:2px solid #fff;box-shadow:0 0 6px rgba(139,92,246,.7);cursor:${handleCursor};"></div>`,
     className: '', iconSize: [12,12], iconAnchor: [6,6]
   });
-  const handle = L.marker(edgeLatLng, { icon: handleIcon, draggable: true, title: 'Перетащите для изменения радиуса' }).addTo(map);
+  const handle = L.marker(edgeLatLng, { icon: handleIcon, draggable: canChangeRadius, title: canChangeRadius ? 'Перетащите для изменения радиуса' : '' }).addTo(map);
 
-  handle.on('drag', function(e) {
-    const center = L.latLng(lat, lng);
-    const newR = Math.round(center.distanceTo(e.target.getLatLng()));
-    circle.setRadius(newR);
-    circle.closeTooltip();
-    circle.bindTooltip(`${name} · R=${newR}м`, { permanent: true, direction: 'top', className: 'lf-reb-tip', offset: [0, -4] });
-  });
+  if (canChangeRadius) {
+    handle.on('drag', function(e) {
+      const center = L.latLng(lat, lng);
+      const newR = Math.round(center.distanceTo(e.target.getLatLng()));
+      circle.setRadius(newR);
+      circle.closeTooltip();
+      circle.bindTooltip(`${name} · R=${newR}м`, { permanent: true, direction: 'top', className: 'lf-reb-tip', offset: [0, -4] });
+    });
 
-  handle.on('dragend', async function(e) {
-    const center = L.latLng(lat, lng);
-    const newR = Math.round(center.distanceTo(e.target.getLatLng()));
-    // Snap handle to true east edge
-    handle.setLatLng(computeOffsetLatLng(lat, lng, newR, 90));
-    // Persist new radius
-    try {
-      await fetch('/api/markers/' + mid, {
-        method: 'PATCH',
-        headers: apiHeaders(),
-        body: JSON.stringify({ radius: newR }),
-      });
-    } catch (_) {}
-  });
+    handle.on('dragend', async function(e) {
+      const center = L.latLng(lat, lng);
+      const newR = Math.round(center.distanceTo(e.target.getLatLng()));
+      // Snap handle to true east edge
+      handle.setLatLng(computeOffsetLatLng(lat, lng, newR, 90));
+      // Persist new radius
+      try {
+        await fetch('/api/markers/' + mid, {
+          method: 'PATCH',
+          headers: apiHeaders(),
+          body: JSON.stringify({ radius: newR }),
+        });
+      } catch (_) {}
+    });
+  }
 
   serverMarkerRefs[mid] = { circle, handle, type: 'reb_dome' };
 }
