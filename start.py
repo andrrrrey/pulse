@@ -6,6 +6,7 @@ PULSE — универсальный лаунчер (Mac / Windows / Linux)
     python start.py          # или python3 start.py на Mac/Linux
     python start.py --port 9000   # кастомный порт
     python start.py --no-browser  # без автооткрытия браузера
+    python start.py --stop        # остановить запущенный сервер
 """
 
 import sys
@@ -16,6 +17,7 @@ import time
 import threading
 import webbrowser
 import argparse
+import signal
 
 MIN_PYTHON = (3, 9)
 DEFAULT_HOST = "0.0.0.0"
@@ -68,18 +70,65 @@ def open_browser_delayed(url, delay=2):
     threading.Thread(target=_open, daemon=True).start()
 
 
+def find_pids_on_port(port):
+    """Найти PID процессов, занимающих указанный порт."""
+    pids = []
+    if platform.system() == "Windows":
+        result = subprocess.run(
+            ["netstat", "-ano", "-p", "TCP"],
+            capture_output=True, text=True
+        )
+        for line in result.stdout.splitlines():
+            parts = line.split()
+            if len(parts) >= 4 and f":{port}" in parts[1] and parts[3] == "LISTENING":
+                pids.append(parts[-1])
+    else:
+        result = subprocess.run(
+            ["lsof", "-ti", f":{port}"],
+            capture_output=True, text=True
+        )
+        pids = [p for p in result.stdout.strip().splitlines() if p]
+    return pids
+
+
+def stop_server(port):
+    """Остановить сервер, занимающий указанный порт."""
+    print(f"Ищу процессы на порту {port}...")
+    pids = find_pids_on_port(port)
+
+    if not pids:
+        print(f"Процессов на порту {port} не найдено. Сервер не запущен.")
+        return
+
+    for pid in pids:
+        try:
+            if platform.system() == "Windows":
+                subprocess.run(["taskkill", "/F", "/PID", pid], check=True)
+            else:
+                os.kill(int(pid), signal.SIGTERM)
+            print(f"Процесс {pid} остановлен.")
+        except (ProcessLookupError, subprocess.CalledProcessError):
+            print(f"Процесс {pid} уже не существует.")
+    print("Готово.")
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="PULSE лаунчер")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Порт сервера (по умолчанию: 8000)")
     parser.add_argument("--host", default=DEFAULT_HOST, help="Хост сервера (по умолчанию: 0.0.0.0)")
     parser.add_argument("--no-browser", action="store_true", help="Не открывать браузер автоматически")
     parser.add_argument("--no-reload", action="store_true", help="Отключить автоперезагрузку при изменении файлов")
+    parser.add_argument("--stop", action="store_true", help="Остановить запущенный сервер")
     return parser.parse_args()
 
 
 def main():
     check_python_version()
     args = parse_args()
+
+    if args.stop:
+        stop_server(args.port)
+        return
 
     project_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -93,7 +142,7 @@ def main():
     url = f"http://localhost:{args.port}"
 
     print(f"  Адрес: {url}")
-    print(f"  Стоп:  Ctrl+C")
+    print(f"  Стоп:  Ctrl+C  или  python start.py --stop")
     print("=" * 50 + "\n")
 
     if not args.no_browser:
