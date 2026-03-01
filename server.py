@@ -157,12 +157,15 @@ def add_marker(data: dict):
     expires_at = ""
     if expires_in > 0:
         expires_at = (datetime.utcnow() + timedelta(minutes=expires_in)).isoformat(timespec="seconds")
+    import json as _json
+    attachments = data.get("attachments", [])
+    attachments_str = _json.dumps(attachments) if attachments else ''
     with get_conn() as db:
         db.execute(
             """INSERT INTO markers
                (id,lat,lng,name,type,color,priority,info,coords_x,coords_y,zone,created_at,
-                radius,extra,marker_role,expires_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                radius,extra,marker_role,expires_at,attachments)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 mid,
                 data["lat"], data["lng"], data["name"],
@@ -178,6 +181,7 @@ def add_marker(data: dict):
                 data.get("extra", ""),
                 data.get("marker_role", ""),
                 expires_at,
+                attachments_str,
             ),
         )
     return {"id": mid, "created_at": now}

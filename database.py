@@ -126,6 +126,7 @@ def init_db():
             "extra       TEXT DEFAULT ''",
             "marker_role TEXT DEFAULT ''",
             "expires_at  TEXT DEFAULT ''",
+            "attachments TEXT DEFAULT ''",
         ]:
             col_name = col_def.split()[0]
             try:
