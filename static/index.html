@@ -397,6 +397,155 @@ nav { display: flex; gap: 2px; }
 </style>
 
 <style>
+/* ══════════════════════════════════════════════
+   NEW FEATURES & BRIGHTNESS IMPROVEMENTS
+══════════════════════════════════════════════ */
+
+/* ─── Kill Feed dynamic entries ──────────────────────────── */
+#killfeed {
+  max-height: 95px;
+  background: rgba(2,6,23,0.6);
+  border-bottom: 1px solid rgba(239,68,68,.25);
+}
+.kf-label {
+  font-size: 10px;
+  color: #f87171;
+  letter-spacing: 0.12em;
+  margin-bottom: 3px;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(239,68,68,.5);
+}
+.kf-row { font-size: 11.5px; margin-bottom: 2px; line-height: 1.4; }
+.kf-row.kf-new { animation: kf-flash .45s ease; }
+@keyframes kf-flash {
+  from { background: rgba(239,68,68,.2); }
+  to   { background: transparent; }
+}
+.kf-ts           { color: #475569; }
+.kf-pilot        { color: #fb923c; font-weight: 600; margin: 0 3px; }
+.kf-arrow        { color: #475569; }
+.kf-target-name  { color: #fca5a5; font-weight: 600; margin: 0 3px; }
+.kf-coords       { color: #475569; font-size: 10px; margin-left: 3px; }
+#kf-entries      { min-height: 0; }
+
+/* ─── Pilot ticker / marquee ─────────────────────────────── */
+#pilot-ticker {
+  display: none;
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 500;
+  background: rgba(6,182,212,0.13);
+  border-top: 1px solid rgba(6,182,212,0.55);
+  padding: 5px 0;
+  overflow: hidden;
+  cursor: pointer;
+  pointer-events: auto;
+}
+#pilot-ticker:hover { background: rgba(6,182,212,0.22); }
+.ticker-track {
+  display: inline-block;
+  white-space: nowrap;
+  animation: ticker-scroll 14s linear;
+  color: #22d3ee;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  padding-left: 110%;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(6,182,212,.7);
+}
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-110%); }
+}
+
+/* ─── REB Radar Canvas overlay ───────────────────────────── */
+.reb-radar-canvas {
+  position: absolute;
+  pointer-events: none;
+  z-index: 350;
+}
+
+/* ─── Delivery / pilot-target notifications ──────────────── */
+.notif-item.delivery {
+  border-color: rgba(56,189,248,.6);
+  background: rgba(56,189,248,.08);
+}
+.notif-item.pilot-target {
+  border-color: rgba(132,204,22,.6);
+  background: rgba(132,204,22,.07);
+}
+
+/* ─── General brightness & readability improvements ──────── */
+html, body { color: #dde4ee; }
+
+#header { border-color: rgba(249,115,22,0.48); }
+#map-section { border-color: rgba(249,115,22,0.42); }
+.cb { border-color: rgba(249,115,22,0.35); }
+
+/* Chat: brighter text */
+.chat-text        { color: #b8c6d3; }
+.chat-user-self   { color: #fb923c; text-shadow: 0 0 6px rgba(251,146,60,.35); }
+.chat-user-cmd    { color: #7dd3fc; text-shadow: 0 0 5px rgba(125,211,252,.3); }
+.chat-user-other  { color: #4ade80; text-shadow: 0 0 5px rgba(74,222,128,.3); }
+.chat-ts          { color: #4a5568; }
+
+/* Brighter nav items */
+.nav-item { color: #7a8fa8; }
+.nav-item:hover, .nav-item.active {
+  color: #fb923c;
+  text-shadow: 0 0 8px rgba(251,146,60,.45);
+}
+
+/* Toolbar btns */
+.tb-btn { color: #7a8fa8; border-color: #374151; }
+.tb-btn:hover  { color: #fb923c; border-color: rgba(249,115,22,.6); }
+.tb-btn.active { color: #fb923c; border-color: rgba(249,115,22,.65); background: rgba(249,115,22,.13); }
+
+/* Freq table */
+.f-free { color: #34d399; font-weight: 600; }
+.f-busy { color: #fbbf24; font-weight: 600; }
+.f-full { color: #f87171; font-weight: 600; }
+
+/* Popup brighter text */
+.pop-lbl   { color: #7a8fa8; }
+.pop-val   { color: #e2e8f0; }
+.pop-title { font-size: 13px; letter-spacing: .07em; }
+
+/* Labels */
+.label-orange { color: #fb923c; text-shadow: 0 0 6px rgba(251,146,60,.3); }
+
+/* Notifications brighter */
+.notif-item       { border-color: rgba(249,115,22,.6); }
+.notif-item.reb   { border-color: rgba(139,92,246,.7); }
+.notif-item.strike{ border-color: rgba(239,68,68,.75); background: rgba(239,68,68,.12); }
+
+/* REB tooltip */
+.lf-reb-tip {
+  background: transparent !important; border: none !important; box-shadow: none !important;
+  color: rgba(210,180,255,1) !important; font-family: 'JetBrains Mono', monospace !important;
+  font-size: 9px !important; letter-spacing: .05em !important;
+  text-shadow: 0 0 6px rgba(139,92,246,.8) !important;
+}
+
+/* Popup wrapper glow */
+.lf-popup .leaflet-popup-content-wrapper {
+  border-color: rgba(249,115,22,.6) !important;
+  box-shadow: 0 0 24px rgba(249,115,22,.2) !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar-thumb { background: rgba(249,115,22,.65); border-radius: 2px; }
+
+/* Map toolbar label */
+#map-toolbar { border-bottom-color: rgba(249,115,22,.2); }
+
+/* MFP type-btn icons */
+.mfp-type-btn svg { flex-shrink: 0; }
+.mfp-type-btn { gap: 5px; font-size: 9px; }
+.mfp-type-btn.active { box-shadow: 0 0 8px rgba(249,115,22,.25); }
+</style>
+
+<style>
 /* ── Login overlay ─────────────────────────── */
 #login-overlay {
   position: fixed; inset: 0; z-index: 20000;
@@ -652,6 +801,8 @@ nav { display: flex; gap: 2px; }
           <!-- Ruler info label -->
           <div id="ruler-label" style="display:none;position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(2,6,23,.92);border:1px solid rgba(249,115,22,.4);padding:4px 12px;font-size:12px;color:#f97316;letter-spacing:.07em;white-space:nowrap;"></div>
         </div><!-- /map-overlay -->
+        <!-- Pilot target ticker -->
+        <div id="pilot-ticker" onclick="pilotTickerClick()"><span class="ticker-track" id="ticker-text"></span></div>
       </div><!-- /map-container -->
     </section>
 
@@ -694,28 +845,8 @@ nav { display: flex; gap: 2px; }
 
         <!-- Kill feed -->
         <div id="killfeed">
-          <div class="kf-label">KILL FEED</div>
-          <div class="kf-row">
-            <span style="color:#334155;">12:47</span>
-            <span style="color:#f97316;margin-left:4px;">[Сапёр]</span>
-            <span style="color:#64748b;margin-left:3px;">→</span>
-            <span style="color:#ef4444;margin-left:4px;">Техника</span>
-            <span style="color:#334155;margin-left:4px;">· X:6412540 Y:2306120</span>
-          </div>
-          <div class="kf-row">
-            <span style="color:#334155;">12:39</span>
-            <span style="color:#f97316;margin-left:4px;">[Коршун]</span>
-            <span style="color:#64748b;margin-left:3px;">→</span>
-            <span style="color:#ef4444;margin-left:4px;">Позиция</span>
-            <span style="color:#334155;margin-left:4px;">· X:6412710 Y:2305930</span>
-          </div>
-          <div class="kf-row">
-            <span style="color:#334155;">12:24</span>
-            <span style="color:#f97316;margin-left:4px;">[Рысь]</span>
-            <span style="color:#64748b;margin-left:3px;">→</span>
-            <span style="color:#ef4444;margin-left:4px;">РЭБ</span>
-            <span style="color:#334155;margin-left:4px;">· X:6412880 Y:2306340</span>
-          </div>
+          <div class="kf-label">▶ KILL FEED</div>
+          <div id="kf-entries"></div>
         </div>
 
         <!-- Messages -->
@@ -1863,25 +1994,25 @@ nav { display: flex; gap: 2px; }
         <label class="mfp-label">Тип объекта</label>
         <div class="mfp-type-grid" id="mfp-type-grid">
           <button class="mfp-type-btn" data-type="tech"     data-color="#ef4444" onclick="selectMarkType(this)">
-            <span class="mfp-type-dot" style="background:#ef4444;"></span>Техника
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" flex-shrink="0"><rect x="2" y="10" width="20" height="7" rx="1"/><path d="M5 10V7h3v3M11 10V7h3v3"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M2 13h20"/></svg>Техника
           </button>
           <button class="mfp-type-btn" data-type="infantry" data-color="#84cc16" onclick="selectMarkType(this)">
-            <span class="mfp-type-dot" style="background:#84cc16;"></span>Живая сила
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#84cc16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M8 21v-5a4 4 0 0 1 8 0v5"/><path d="M6 10l-2 5M18 10l2 5"/></svg>Пехота
           </button>
           <button class="mfp-type-btn" data-type="reb"      data-color="#8b5cf6" onclick="selectMarkType(this)">
-            <span class="mfp-type-dot" style="background:#8b5cf6;"></span>РЭБ
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>РЭБ
           </button>
           <button class="mfp-type-btn" data-type="arty"     data-color="#f59e0b" onclick="selectMarkType(this)">
-            <span class="mfp-type-dot" style="background:#f59e0b;"></span>Арт-позиция
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h13M18 7l4 5-4 5"/><circle cx="7" cy="15" r="2"/><path d="M9 15h4"/></svg>Арт-поз.
           </button>
           <button class="mfp-type-btn" data-type="agro"     data-color="#06b6d4" onclick="selectMarkType(this)">
-            <span class="mfp-type-dot" style="background:#06b6d4;"></span>Агро-дроны
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"/><line x1="4" y1="4" x2="8.5" y2="8.5"/><line x1="20" y1="4" x2="15.5" y2="8.5"/><line x1="4" y1="20" x2="8.5" y2="15.5"/><line x1="20" y1="20" x2="15.5" y2="15.5"/><circle cx="4" cy="4" r="1.5" fill="#06b6d4"/><circle cx="20" cy="4" r="1.5" fill="#06b6d4"/><circle cx="4" cy="20" r="1.5" fill="#06b6d4"/><circle cx="20" cy="20" r="1.5" fill="#06b6d4"/></svg>Агро-дрон
           </button>
           <button class="mfp-type-btn" data-type="enemy-eq" data-color="#f97316" onclick="selectMarkType(this)">
-            <span class="mfp-type-dot" style="background:#f97316;"></span>Обор. противника
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>Оборуд.
           </button>
           <button class="mfp-type-btn" data-type="delivery" data-color="#38bdf8" onclick="selectMarkType(this)">
-            <span class="mfp-type-dot" style="background:#38bdf8;"></span>Доставка пехоте
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14M5 8a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2M5 8V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2M12 12v4M9 14l3 2 3-2"/></svg>Доставка
           </button>
         </div>
       </div>
@@ -2665,6 +2796,21 @@ async function pollNotifications() {
           showNotif(n.id, 'strike', `⚡ УДАР по союзной позиции: ${d.coords || '?'} · ${d.info || ''}`);
           loadMarkersFromServer();
         }
+      } else if (n.type === 'delivery') {
+        let d = {};
+        try { d = JSON.parse(n.data); } catch (_) {}
+        const role = currentUser?.role;
+        // Show delivery notification to pilots (and commanders)
+        if (role === 'pilot' || role === 'commander' || role === 'admin') {
+          showNotif(n.id, 'delivery',
+            `📦 ДОСТАВКА ЗАПРОШЕНА: <b>${d.name || '—'}</b> · ${d.coords || ''}`);
+          // Also trigger pilot ticker to navigate
+          if (role === 'pilot' && d.lat && d.lng) {
+            showPilotTicker(d.name || 'Доставка', parseFloat(d.lat), parseFloat(d.lng),
+              d.coords ? d.coords.match(/X:(\d+)/)?.[1] : '',
+              d.coords ? d.coords.match(/Y:(\d+)/)?.[1] : '');
+          }
+        }
       }
     });
 
@@ -2812,18 +2958,31 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.p
   attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
 }).addTo(map);
 
+/* ── Type-specific icon paths (24x24 viewBox) ──────── */
+const MARKER_ICON_PATHS = {
+  tech:      '<rect x="2" y="10" width="20" height="6" rx="1" fill="currentColor" opacity=".9"/><path d="M5 10V8h3v2M11 10V8h3v2" stroke="rgba(0,0,0,.5)" stroke-width="1" fill="none"/><circle cx="7" cy="16" r="2.2" fill="rgba(0,0,0,.4)"/><circle cx="17" cy="16" r="2.2" fill="rgba(0,0,0,.4)"/><rect x="2" y="11" width="20" height="1" fill="rgba(0,0,0,.2)"/>',
+  infantry:  '<circle cx="12" cy="6" r="3" fill="currentColor" opacity=".9"/><path d="M8 21v-4a4 4 0 0 1 8 0v4" fill="currentColor" opacity=".85"/><path d="M5 11l-1 4M19 11l1 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  reb:       '<path d="M4.5 19.5C.5 15.5.5 8.5 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M7.5 16.5c-2-2-2-6 0-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M16.5 7.5c2 2 2 6 0 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M19.5 4.5c4 4 4 11 0 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>',
+  arty:      '<path d="M2 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M16 8l5 4-5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="8" cy="15.5" r="2.5" fill="currentColor" opacity=".85"/>',
+  agro:      '<circle cx="12" cy="12" r="2.8" fill="currentColor"/><line x1="4.5" y1="4.5" x2="9" y2="9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="19.5" y1="4.5" x2="15" y2="9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="4.5" y1="19.5" x2="9" y2="15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="19.5" y1="19.5" x2="15" y2="15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="4.5" cy="4.5" r="2" fill="currentColor" opacity=".8"/><circle cx="19.5" cy="4.5" r="2" fill="currentColor" opacity=".8"/><circle cx="4.5" cy="19.5" r="2" fill="currentColor" opacity=".8"/><circle cx="19.5" cy="19.5" r="2" fill="currentColor" opacity=".8"/>',
+  'enemy-eq':'<path d="M12 2l2.2 6.8H22l-5.8 4.2 2.2 6.8L12 15.6l-6.4 4.2 2.2-6.8L2 8.8h7.8z" fill="currentColor" opacity=".9"/>',
+  delivery:  '<path d="M4 9h16M4 9a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2M4 9V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2M12 13v3M9.5 15l2.5 1.5 2.5-1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+};
+
 /* ── Custom SVG marker factory ─────────────────── */
-function makeIcon(color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
-    <circle cx="11" cy="11" r="6" fill="${color}" opacity=".95"/>
-    <circle cx="11" cy="11" r="9" fill="none" stroke="${color}" stroke-width="1.2" opacity=".45"/>
+function makeIcon(color, type) {
+  const innerPath = MARKER_ICON_PATHS[type] || `<circle cx="11" cy="11" r="5" fill="${color}" opacity=".95"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="12" fill="${color}" opacity=".18"/>
+    <circle cx="14" cy="14" r="11" fill="none" stroke="${color}" stroke-width="1.5" opacity=".7"/>
+    <g transform="translate(2,2)" style="color:${color}">${innerPath}</g>
   </svg>`;
   return L.divIcon({
-    html: svg,
+    html: `<div style="filter:drop-shadow(0 0 4px ${color})">${svg}</div>`,
     className: '',
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-    popupAnchor: [0, -14]
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16]
   });
 }
 
@@ -2902,35 +3061,221 @@ Object.entries(TARGETS).forEach(([id, d]) => {
   markerRefs[id] = m;
 });
 
+/* ─── Kill Feed ─────────────────────────────────────────── */
+function addKillFeedEntry(name, coords) {
+  const kfEl = document.getElementById('kf-entries');
+  if (!kfEl) return;
+  const ts = new Date().toTimeString().slice(0, 5);
+  const callsign = currentUser?.callsign || currentUser?.username || '—';
+  const row = document.createElement('div');
+  row.className = 'kf-row kf-new';
+  const safeN = (name || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const safeC = (coords || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  row.innerHTML = `<span class="kf-ts">${ts}</span> <span class="kf-pilot">[${callsign}]</span><span class="kf-arrow">→</span><span class="kf-target-name">${safeN}</span><span class="kf-coords">${safeC}</span>`;
+  kfEl.insertBefore(row, kfEl.firstChild);
+  // Persist to server
+  fetch('/api/killfeed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(authToken ? { 'Authorization': 'Bearer ' + authToken } : {}) },
+    body: JSON.stringify({ ts, callsign, target_type: safeN, coords: safeC }),
+  }).catch(() => {});
+  // Auto-remove visual after 5 min
+  setTimeout(() => { try { row.remove(); } catch(_){} }, 5 * 60 * 1000);
+}
+
+/* ─── Pilot Ticker (bегущая строка) ─────────────────────── */
+let _pilotTickerTimeout = null;
+let _pilotTickerLat = 0, _pilotTickerLng = 0;
+
+function showPilotTicker(name, lat, lng, coordX, coordY) {
+  const ticker = document.getElementById('pilot-ticker');
+  const textEl = document.getElementById('ticker-text');
+  if (!ticker || !textEl) return;
+
+  if (_pilotTickerTimeout) { clearTimeout(_pilotTickerTimeout); }
+
+  _pilotTickerLat = lat;
+  _pilotTickerLng = lng;
+  const coords = (coordX && coordY) ? ` · X:${coordX} Y:${coordY}` : '';
+  const safeName = (name || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  textEl.textContent = `▶ НОВАЯ ЦЕЛЬ: ${safeName}${coords} — НАЖМИТЕ ДЛЯ ПЕРЕХОДА НА ПОЗИЦИЮ ◀`;
+  // Restart animation by cloning the element
+  const newText = textEl.cloneNode(true);
+  ticker.replaceChild(newText, textEl);
+  ticker.style.display = 'block';
+
+  _pilotTickerTimeout = setTimeout(() => {
+    if (ticker) ticker.style.display = 'none';
+    _pilotTickerTimeout = null;
+  }, 10000);
+}
+
+function pilotTickerClick() {
+  if (_pilotTickerLat && _pilotTickerLng) {
+    map.setView([_pilotTickerLat, _pilotTickerLng], Math.max(map.getZoom(), 16), { animate: true });
+  }
+  const ticker = document.getElementById('pilot-ticker');
+  if (ticker) ticker.style.display = 'none';
+  if (_pilotTickerTimeout) { clearTimeout(_pilotTickerTimeout); _pilotTickerTimeout = null; }
+}
+
 function destroyMarker(id) {
+  // Collect name+coords before removing
+  let targetName = '—', targetCoords = '';
+  if (TARGETS[id]) {
+    targetName = TARGETS[id].type || '—';
+    targetCoords = TARGETS[id].coords || '';
+  } else if (markerRefs[id]) {
+    const ll = markerRefs[id].getLatLng();
+    const sk = formatSK42(ll.lat, ll.lng);
+    targetCoords = `X:${sk.X} Y:${sk.Y}`;
+  }
   if (markerRefs[id]) { markerRefs[id].remove(); delete markerRefs[id]; }
   if (serverMarkerRefs[id]) {
     if (serverMarkerRefs[id].circle) serverMarkerRefs[id].circle.remove();
     if (serverMarkerRefs[id].handle) serverMarkerRefs[id].handle.remove();
+    if (serverMarkerRefs[id].radarAnim) serverMarkerRefs[id].radarAnim.remove();
     if (typeof serverMarkerRefs[id].remove === 'function') serverMarkerRefs[id].remove();
     delete serverMarkerRefs[id];
   }
+  addKillFeedEntry(targetName, targetCoords);
   map.closePopup();
   fetch('/api/markers/' + id, { method: 'DELETE', headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {} }).catch(() => {});
 }
 
-/* ── REB zone circle ───────────────────────────── */
-L.circle([48.500, 37.502], {
-  radius: 110,
+/* ── REB Radar Animation Engine ────────────────────────────
+   Creates an animated rotating radar sweep on a canvas element
+   positioned over the Leaflet map container.
+─────────────────────────────────────────────────────────── */
+const _rebRadarState = {}; // id → { running, canvas, update }
+
+function createRebRadarAnimation(id, lat, lng, radiusMeters) {
+  // Remove existing animation for this id
+  if (_rebRadarState[id]) {
+    _rebRadarState[id].running = false;
+    if (_rebRadarState[id].canvas) _rebRadarState[id].canvas.remove();
+    map.off('zoomend moveend', _rebRadarState[id].update);
+    delete _rebRadarState[id];
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.className = 'reb-radar-canvas';
+  // Append to map-overlay so it moves with the map's coordinate space
+  const overlay = document.getElementById('map-overlay') || map.getContainer();
+  overlay.appendChild(canvas);
+
+  let angle = 0;
+  const state = { running: true, canvas };
+
+  function getGeom() {
+    const mapC = map.getContainer();
+    const rect  = mapC.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+    const centerPt = map.latLngToContainerPoint([lat, lng]);
+    const edgePt   = map.latLngToContainerPoint(computeOffsetLatLng(lat, lng, radiusMeters, 90));
+    const r = Math.abs(edgePt.x - centerPt.x);
+    return { cx: centerPt.x, cy: centerPt.y, r };
+  }
+
+  function updateCanvasPosition() {
+    const { cx, cy, r } = getGeom();
+    const pad = 2;
+    const size = Math.max(r * 2 + pad * 2, 10);
+    canvas.width  = size;
+    canvas.height = size;
+    canvas.style.left = (cx - r - pad) + 'px';
+    canvas.style.top  = (cy - r - pad) + 'px';
+    canvas.style.width  = size + 'px';
+    canvas.style.height = size + 'px';
+  }
+  state.update = updateCanvasPosition;
+  map.on('zoomend moveend', updateCanvasPosition);
+  updateCanvasPosition();
+
+  function draw() {
+    if (!state.running) return;
+    const { r } = getGeom();
+    const pad = 2;
+    const cx  = r + pad;
+    const cy  = r + pad;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (r < 2) { requestAnimationFrame(draw); return; }
+
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(139,92,246,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Sweep glow sector (45° trailing sector)
+    const trailAngle = Math.PI / 4;
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    grad.addColorStop(0,   'rgba(139,92,246,0.0)');
+    grad.addColorStop(0.3, 'rgba(139,92,246,0.06)');
+    grad.addColorStop(1,   'rgba(139,92,246,0.14)');
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, angle - trailAngle, angle);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Sweep arm line with glow
+    const ex = cx + Math.cos(angle) * r;
+    const ey = cy + Math.sin(angle) * r;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(ex, ey);
+    ctx.strokeStyle = 'rgba(167,139,250,0.95)';
+    ctx.lineWidth = 1.8;
+    ctx.shadowColor = 'rgba(139,92,246,0.7)';
+    ctx.shadowBlur  = 6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(167,139,250,0.9)';
+    ctx.fill();
+
+    angle += 0.018; // ~3 seconds per revolution
+    if (angle > Math.PI * 2) angle -= Math.PI * 2;
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  return {
+    remove() {
+      state.running = false;
+      canvas.remove();
+      map.off('zoomend moveend', updateCanvasPosition);
+      delete _rebRadarState[id];
+    }
+  };
+}
+
+/* ── Static demo REB zone (with radar animation) ─────────── */
+const _staticRebLat = 48.500, _staticRebLng = 37.502, _staticRebR = 110;
+const _staticRebCircle = L.circle([_staticRebLat, _staticRebLng], {
+  radius: _staticRebR,
   color: '#8b5cf6',
-  weight: 1,
-  dashArray: '6 4',
-  fillColor: '#8b5cf6',
-  fillOpacity: 0.06
+  weight: 1.5,
+  fillOpacity: 0,
+  opacity: 0 // hidden — radar canvas shows the ring
 }).addTo(map).bindTooltip('РЭБ-А · 110м', {
   permanent: true,
   direction: 'top',
   className: 'lf-reb-tip',
   offset: [0, -6]
 });
-const rebTipStyle = document.createElement('style');
-rebTipStyle.textContent = `.lf-reb-tip { background:transparent; border:none; box-shadow:none; color:rgba(167,139,250,.85); font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:.05em; }`;
-document.head.appendChild(rebTipStyle);
+// Start radar on the static demo dome (after map is fully loaded)
+map.whenReady(() => {
+  _rebRadarState['_demo'] = createRebRadarAnimation('_demo', _staticRebLat, _staticRebLng, _staticRebR);
+});
 
 /* ═══════════════════════════════════════════
    FREQ TABLE
@@ -3242,14 +3587,24 @@ function formatSK42(lat, lon) {
   };
 }
 
-/* ── Иконка маркера ──────────────────────────── */
-function makeCustomMarkerIcon(color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="28" viewBox="0 0 22 28">
-    <ellipse cx="11" cy="26" rx="5" ry="2" fill="rgba(0,0,0,.35)"/>
-    <path d="M11 0C7 0 3.5 3.3 3.5 8c0 6 7.5 18 7.5 18s7.5-12 7.5-18C18.5 3.3 15 0 11 0z" fill="${color}"/>
-    <circle cx="11" cy="8" r="3.5" fill="#fff" opacity=".85"/>
+/* ── Иконка маркера (type-aware pin) ──────────────────── */
+function makeCustomMarkerIcon(color, type) {
+  const innerPath = MARKER_ICON_PATHS[type] || `<circle cx="12" cy="12" r="5" fill="white" opacity=".9"/>`;
+  // Pin shape 28x34, icon embedded in pin head (cx=14,cy=13,r=10)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="34" viewBox="0 0 28 34">
+    <ellipse cx="14" cy="32" rx="5" ry="2.2" fill="rgba(0,0,0,.35)"/>
+    <path d="M14 0C9.1 0 5 4 5 9.5c0 7.5 9 22.5 9 22.5s9-15 9-22.5C23 4 18.9 0 14 0z" fill="${color}" opacity=".95"/>
+    <path d="M14 0C9.1 0 5 4 5 9.5c0 7.5 9 22.5 9 22.5s9-15 9-22.5C23 4 18.9 0 14 0z" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"/>
+    <circle cx="14" cy="9.5" r="8" fill="rgba(0,0,0,.35)"/>
+    <g transform="translate(2.5,0) scale(0.8,0.8)" style="color:white;opacity:.95">${innerPath}</g>
   </svg>`;
-  return L.divIcon({ html: svg, className: '', iconSize:[22,28], iconAnchor:[11,28], popupAnchor:[0,-30] });
+  return L.divIcon({
+    html: `<div style="filter:drop-shadow(0 0 5px ${color})">${svg}</div>`,
+    className: '',
+    iconSize: [28, 34],
+    iconAnchor: [14, 34],
+    popupAnchor: [0, -36]
+  });
 }
 
 const PRIO_LABELS = { low:'Низкий', med:'Средний', high:'Высокий', crit:'КРИТ' };
@@ -3424,7 +3779,7 @@ function selectMarkType(btn) {
   selectedMarkType = { type: btn.dataset.type, color: btn.dataset.color, label: btn.textContent.trim() };
 }
 
-function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, ts, attachUrls) {
+function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, ts, attachUrls, typeKey) {
   const prioColor = PRIO_COLORS[prio] || '#f59e0b';
   const prioLabel = PRIO_LABELS[prio] || prio;
   let attachHtml = '';
@@ -3437,7 +3792,7 @@ function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, t
     }).join('');
     attachHtml = `<div class="pop-row" style="border-top:1px solid #1e293b;padding-top:5px;margin-top:3px;flex-wrap:wrap;gap:3px;">${thumbs}</div>`;
   }
-  const m = L.marker([lat, lng], { icon: makeCustomMarkerIcon(color) })
+  const m = L.marker([lat, lng], { icon: makeCustomMarkerIcon(color, typeKey || '') })
     .addTo(map)
     .bindPopup(`
       <div class="pop-inner" style="min-width:220px;">
@@ -3463,6 +3818,7 @@ function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, t
         </div>
       </div>
     `, { className:'lf-popup', closeButton:true, maxWidth:300 });
+  m._markerName = name; // for kill feed
   markerRefs[mid] = m;
   return m;
 }
@@ -3534,7 +3890,7 @@ async function submitEditMark() {
         let editAttachUrls = [];
         try { editAttachUrls = md.attachments ? JSON.parse(md.attachments) : []; } catch (_) {}
         const marker = addMarkerToMap(String(md.id), md.lat, md.lng, md.name, md.color || '#f97316',
-          typeLabel, md.priority || 'med', md.info || '—', sk, ts, editAttachUrls);
+          typeLabel, md.priority || 'med', md.info || '—', sk, ts, editAttachUrls, md.type || '');
         serverMarkerRefs[String(md.id)] = marker;
       }
     }
@@ -3596,9 +3952,29 @@ async function confirmMark() {
   } catch (_) {}
 
   const newMarker = addMarkerToMap(markerId, lat, lng,
-    name, color, typeLabel, prio, info, sk, ts, attachUrls);
+    name, color, typeLabel, prio, info, sk, ts, attachUrls, typeKey);
   serverMarkerRefs[markerId] = newMarker; // register so logout clears it properly
   newMarker.openPopup();
+
+  // Delivery notification — broadcast to all pilots via API
+  if (typeKey === 'delivery') {
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: JSON.stringify({
+          type: 'delivery',
+          data: JSON.stringify({ name, coords: `X:${sk.X} Y:${sk.Y}`, lat, lng }),
+          expires_in_minutes: 30,
+        }),
+      });
+    } catch (_) {}
+    // Also show immediately to the current pilot
+    if (currentUser?.role === 'pilot') {
+      showNotif('delivery_self_' + Date.now(), 'delivery',
+        `📦 ДОСТАВКА СОЗДАНА: <b>${name}</b> · X:${sk.X} Y:${sk.Y}`);
+    }
+  }
 }
 
 /* ─── Server marker references (separate from static TARGETS) ─────── */
@@ -3620,26 +3996,27 @@ function addRebDomeToMap(mid, lat, lng, name, radius, extra) {
   if (serverMarkerRefs[mid]) {
     if (serverMarkerRefs[mid].circle) serverMarkerRefs[mid].circle.remove();
     if (serverMarkerRefs[mid].handle) serverMarkerRefs[mid].handle.remove();
+    if (serverMarkerRefs[mid].radarAnim) serverMarkerRefs[mid].radarAnim.remove();
     delete serverMarkerRefs[mid];
   }
   let extra_data = {};
   try { extra_data = JSON.parse(extra || '{}'); } catch (_) {}
   const r = parseFloat(radius) || 150;
 
-  // Gradient dome circle
+  // Invisible Leaflet circle (used for tooltip anchor only; animation is on canvas)
   const circle = L.circle([lat, lng], {
     radius: r,
     color: '#8b5cf6',
-    weight: 1.5,
-    dashArray: '6 4',
-    fillColor: '#8b5cf6',
-    fillOpacity: 0.08,
+    weight: 1,
+    opacity: 0,
+    fillOpacity: 0,
   }).addTo(map);
+  circle._rebName = name; // store for destroyServerMarker
 
-  const tipText = `${name} · R=${r}м · ${extra_data.freqs || ''}`;
-  circle.bindTooltip(tipText, { permanent: true, direction: 'top', className: 'lf-reb-tip', offset: [0, -4] });
+  const tipText = `${name} · R=${r}м` + (extra_data.freqs ? ` · ${extra_data.freqs}` : '');
+  circle.bindTooltip(tipText, { permanent: true, direction: 'top', className: 'lf-reb-tip', offset: [0, -10] });
   circle.bindPopup(`<div class="pop-inner" style="min-width:200px;">
-    <div class="pop-title" style="color:#8b5cf6;">${name}</div>
+    <div class="pop-title" style="color:#a78bfa;">${name}</div>
     <div class="pop-row"><span class="pop-lbl">Тип:</span><span class="pop-val">${extra_data.reb_type === 'directional' ? 'Направленная' : 'Круговая'}</span></div>
     <div class="pop-row"><span class="pop-lbl">Радиус:</span><span class="pop-val">${r} м</span></div>
     <div class="pop-row"><span class="pop-lbl">Работа:</span><span class="pop-val">${extra_data.time_from || '?'}–${extra_data.time_to || '?'}</span></div>
@@ -3652,6 +4029,7 @@ function addRebDomeToMap(mid, lat, lng, name, radius, extra) {
 
   // Draggable handle at east edge for radius resize (only reb and admin can drag)
   const canChangeRadius = getRoleCan().rebDome;
+  let currentR = r;
   const edgeLatLng = computeOffsetLatLng(lat, lng, r, 90);
   const handleCursor = canChangeRadius ? 'ew-resize' : 'default';
   const handleIcon = L.divIcon({
@@ -3664,17 +4042,21 @@ function addRebDomeToMap(mid, lat, lng, name, radius, extra) {
     handle.on('drag', function(e) {
       const center = L.latLng(lat, lng);
       const newR = Math.round(center.distanceTo(e.target.getLatLng()));
+      currentR = newR;
       circle.setRadius(newR);
       circle.closeTooltip();
-      circle.bindTooltip(`${name} · R=${newR}м`, { permanent: true, direction: 'top', className: 'lf-reb-tip', offset: [0, -4] });
+      circle.bindTooltip(`${name} · R=${newR}м`, { permanent: true, direction: 'top', className: 'lf-reb-tip', offset: [0, -10] });
+      // Restart radar with new radius
+      if (serverMarkerRefs[mid]?.radarAnim) {
+        serverMarkerRefs[mid].radarAnim.remove();
+        serverMarkerRefs[mid].radarAnim = createRebRadarAnimation(mid, lat, lng, newR);
+      }
     });
 
     handle.on('dragend', async function(e) {
       const center = L.latLng(lat, lng);
       const newR = Math.round(center.distanceTo(e.target.getLatLng()));
-      // Snap handle to true east edge
       handle.setLatLng(computeOffsetLatLng(lat, lng, newR, 90));
-      // Persist new radius
       try {
         await fetch('/api/markers/' + mid, {
           method: 'PATCH',
@@ -3685,7 +4067,10 @@ function addRebDomeToMap(mid, lat, lng, name, radius, extra) {
     });
   }
 
-  serverMarkerRefs[mid] = { circle, handle, type: 'reb_dome' };
+  // Start radar animation
+  const radarAnim = createRebRadarAnimation(mid, lat, lng, r);
+
+  serverMarkerRefs[mid] = { circle, handle, radarAnim, type: 'reb_dome', name };
 }
 
 function addEnemyTargetToMap(mid, lat, lng, name, color, extra) {
@@ -3718,17 +4103,42 @@ function addEnemyTargetToMap(mid, lat, lng, name, color, extra) {
       </div>
     </div>`, { className: 'lf-popup', closeButton: true, maxWidth: 280 });
 
+  m._markerName = name; // for kill feed
   serverMarkerRefs[mid] = m;
 }
 
 async function destroyServerMarker(id) {
   map.closePopup();
+  // Collect info before removing
+  let targetName = '—', targetCoords = '';
   if (serverMarkerRefs[id]) {
-    if (serverMarkerRefs[id].circle) serverMarkerRefs[id].circle.remove();
-    if (serverMarkerRefs[id].handle) serverMarkerRefs[id].handle.remove();
-    if (typeof serverMarkerRefs[id].remove === 'function') serverMarkerRefs[id].remove();
+    const ref = serverMarkerRefs[id];
+    if (ref.circle) {
+      const ll = ref.circle.getLatLng();
+      const sk = formatSK42(ll.lat, ll.lng);
+      targetName = ref.name || 'РЭБ купол';
+      targetCoords = `X:${sk.X} Y:${sk.Y}`;
+      ref.circle.remove();
+    }
+    if (ref.handle) ref.handle.remove();
+    if (ref.radarAnim) ref.radarAnim.remove();
+    if (typeof ref.remove === 'function') {
+      const ll = ref.getLatLng?.();
+      if (ll) { const sk = formatSK42(ll.lat, ll.lng); targetCoords = `X:${sk.X} Y:${sk.Y}`; }
+      if (!targetName || targetName === '—') targetName = ref._markerName || '—';
+      ref.remove();
+    }
     delete serverMarkerRefs[id];
   }
+  // Also remove from markerRefs if there
+  if (markerRefs[id]) {
+    const ll = markerRefs[id].getLatLng();
+    const sk = formatSK42(ll.lat, ll.lng);
+    targetCoords = targetCoords || `X:${sk.X} Y:${sk.Y}`;
+    markerRefs[id].remove();
+    delete markerRefs[id];
+  }
+  addKillFeedEntry(targetName, targetCoords);
   try { await fetch('/api/markers/' + id, { method: 'DELETE', headers: apiHeaders() }); } catch (_) {}
 }
 
@@ -3787,7 +4197,7 @@ async function loadMarkersFromServer() {
       let attachUrls = [];
       try { attachUrls = m.attachments ? JSON.parse(m.attachments) : []; } catch (_) {}
       const marker = addMarkerToMap(m.id, m.lat, m.lng, m.name, m.color || '#f97316',
-        typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', attachUrls);
+        typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', attachUrls, m.type || '');
       serverMarkerRefs[m.id] = marker;
     }
   } catch (_) {}
@@ -4864,12 +5274,38 @@ setInterval(async function() {
         let pollAttachUrls = [];
         try { pollAttachUrls = m.attachments ? JSON.parse(m.attachments) : []; } catch (_) {}
         const marker = addMarkerToMap(m.id, m.lat, m.lng, m.name, m.color || '#f97316',
-          typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', pollAttachUrls);
+          typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', pollAttachUrls, m.type || '');
         serverMarkerRefs[m.id] = marker;
+        // Pilot ticker: show for pilot role when scout adds new target
+        if (currentUser?.role === 'pilot') {
+          showPilotTicker(m.name, m.lat, m.lng, m.coords_x, m.coords_y);
+        }
       }
     }
   } catch (_) {}
 }, 10000);
+
+// Load kill feed history on start
+(async function loadKillFeedHistory() {
+  try {
+    const res = await fetch('/api/killfeed?limit=10');
+    if (!res.ok) return;
+    const items = await res.json();
+    const kfEl = document.getElementById('kf-entries');
+    if (!kfEl) return;
+    // Add in reverse to put newest first
+    items.reverse().forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'kf-row';
+      const ts = (item.ts || '').slice(0,5);
+      const cs = (item.callsign || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const tt = (item.target_type || '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const cc = (item.coords || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      row.innerHTML = `<span class="kf-ts">${ts}</span> <span class="kf-pilot">[${cs}]</span><span class="kf-arrow">→</span><span class="kf-target-name">${tt}</span><span class="kf-coords">${cc}</span>`;
+      kfEl.insertBefore(row, kfEl.firstChild);
+    });
+  } catch (_) {}
+})();
 
 // Check for stored auth on page load
 checkStoredAuth();
