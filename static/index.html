@@ -2479,6 +2479,7 @@ async function doLogout() {
       if (serverMarkerRefs[id].remove) serverMarkerRefs[id].remove();
     }
     delete serverMarkerRefs[id];
+    delete markerRefs[id]; // also clear stale ref so markers reload on next login
   });
   stopNotifPolling();
   document.getElementById('login-overlay').style.display = 'flex';
@@ -3565,8 +3566,10 @@ async function confirmMark() {
     }
   } catch (_) {}
 
-  addMarkerToMap(markerId, lat, lng,
-    name, color, typeLabel, prio, info, sk, ts, attachUrls).openPopup();
+  const newMarker = addMarkerToMap(markerId, lat, lng,
+    name, color, typeLabel, prio, info, sk, ts, attachUrls);
+  serverMarkerRefs[markerId] = newMarker; // register so logout clears it properly
+  newMarker.openPopup();
 }
 
 /* ─── Server marker references (separate from static TARGETS) ─────── */
