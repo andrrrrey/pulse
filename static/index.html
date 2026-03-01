@@ -2792,6 +2792,15 @@ L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
   attribution: '&copy; Google Satellite'
 }).addTo(map);
 
+// Labels overlay: city/village/road names on top of satellite
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+  maxZoom: 21,
+  subdomains: 'abcd',
+  pane: 'overlayPane',
+  opacity: 0.9,
+  attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+}).addTo(map);
+
 /* ── Custom SVG marker factory ─────────────────── */
 function makeIcon(color) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
@@ -2833,12 +2842,12 @@ popupStyle.textContent = `
   .pop-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; gap: 12px; }
   .pop-lbl { color: #64748b; white-space: nowrap; }
   .pop-val { color: #cbd5e1; text-align: right; }
-  .pop-btns { display: flex; gap: 6px; margin-top: 8px; }
+  .pop-btns { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
   .pop-btn {
-    flex: 1; border: 1px solid #334155; background: transparent;
+    flex: 1 1 auto; min-width: calc(50% - 3px); border: 1px solid #334155; background: transparent;
     color: #64748b; font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; letter-spacing: .05em; padding: 3px 4px;
-    cursor: pointer; transition: all .15s;
+    font-size: 10px; letter-spacing: .04em; padding: 4px 5px;
+    cursor: pointer; transition: all .15s; text-align: center;
   }
   .pop-btn:hover { border-color: rgba(249,115,22,.5); color: #f97316; background: rgba(249,115,22,.08); }
   .pop-btn-red { border-color: rgba(239,68,68,.4); color: #ef4444; background: rgba(239,68,68,.07); }
@@ -3474,20 +3483,31 @@ async function submitEditMark() {
     });
   } catch (_) {}
   document.getElementById('edit-mark-popup').style.display = 'none';
-  // Refresh marker on map
-  const token = localStorage.getItem('pulse_token');
+  // Refresh marker on map — remove from both refs, then re-add
   try {
-    const res = await fetch('/api/markers', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
+    const res = await fetch('/api/markers', { headers: apiHeaders() });
     if (res.ok) {
       const markers = await res.json();
       const md = markers.find(x => String(x.id) === String(mid));
-      if (md && markerRefs[mid]) {
-        markerRefs[mid].remove();
-        delete markerRefs[mid];
+      if (md) {
+        // Remove old marker from whichever ref holds it
+        if (markerRefs[mid]) { markerRefs[mid].remove(); delete markerRefs[mid]; }
+        if (serverMarkerRefs[mid]) {
+          if (serverMarkerRefs[mid].circle) serverMarkerRefs[mid].circle.remove();
+          if (serverMarkerRefs[mid].handle) serverMarkerRefs[mid].handle.remove();
+          if (typeof serverMarkerRefs[mid].remove === 'function') serverMarkerRefs[mid].remove();
+          delete serverMarkerRefs[mid];
+        }
+        const TYPE_LABELS = {
+          tech:'Техника', infantry:'Живая сила', reb:'РЭБ', arty:'Арт-позиция',
+          agro:'Агро-дроны', 'enemy-eq':'Обор. противника', delivery:'Доставка пехоте'
+        };
         const sk = formatSK42(md.lat, md.lng);
         const ts = (md.created_at || '').replace('T',' ').slice(0,19) + ' UTC';
-        addMarkerToMap(String(md.id), md.lat, md.lng, md.name, md.color || '#f97316',
-          md.type || '—', md.priority || 'med', md.info || '—', sk, ts, md.attachments || []);
+        const typeLabel = TYPE_LABELS[md.type] || md.type || '—';
+        const marker = addMarkerToMap(String(md.id), md.lat, md.lng, md.name, md.color || '#f97316',
+          typeLabel, md.priority || 'med', md.info || '—', sk, ts, md.attachments || []);
+        serverMarkerRefs[String(md.id)] = marker;
       }
     }
   } catch (_) {}
@@ -4578,14 +4598,14 @@ function renderNewsList() {
   const allNews = [...adminNews, ...NEWS];
   list.innerHTML = allNews.map(n => {
     let media = '';
-    if (n._admin) {
-      media = `<div style="height:80px;background:rgba(249,115,22,.08);border-bottom:1px solid rgba(249,115,22,.2);display:flex;align-items:center;justify-content:center;">
-        <span style="font-size:11px;color:#334155;letter-spacing:.08em;">// БЕЗ МЕДИА</span>
-      </div>`;
-    } else if (n.mediaType === 'video') {
+    if (n.mediaType === 'video' && n.mediaSrc) {
       media = `<iframe class="news-card-media-video" src="${n.mediaSrc}" frameborder="0" allowfullscreen title="${n.title}"></iframe>`;
     } else if (n.mediaSrc) {
       media = `<img class="news-card-media" src="${n.mediaSrc}" alt="${n.title}" loading="lazy">`;
+    } else if (n._admin) {
+      media = `<div style="height:80px;background:rgba(249,115,22,.08);border-bottom:1px solid rgba(249,115,22,.2);display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:11px;color:#334155;letter-spacing:.08em;">// БЕЗ МЕДИА</span>
+      </div>`;
     }
     return `<div class="news-card">
       ${media}
