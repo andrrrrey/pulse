@@ -2324,15 +2324,66 @@ nav { display: flex; gap: 2px; }
       <label class="mfp-label">Полный текст</label>
       <textarea id="news-body-input" class="mfp-textarea" rows="4" placeholder="Полный текст новости..."></textarea>
     </div>
-    <div style="margin-bottom:16px;">
+    <div style="margin-bottom:12px;">
       <label class="mfp-label">Метка (тег)</label>
       <input id="news-badge-input" class="mfp-input" type="text" placeholder="Оперативно / Обновление / Инструкция" autocomplete="off">
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <label class="mfp-label" style="margin:0;">Медиа</label>
+        <button id="news-media-toggle" type="button" onclick="toggleNewsMedia()" style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.4);color:#f97316;cursor:pointer;font-family:inherit;font-size:10px;padding:3px 10px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.background='rgba(249,115,22,.22)'" onmouseout="this.style.background='rgba(249,115,22,.1)'">+ Добавить медиа</button>
+      </div>
+      <div id="news-media-section" style="display:none;">
+        <div id="news-media-dropzone" onclick="document.getElementById('news-media-file').click()" style="border:1px dashed rgba(249,115,22,.4);padding:12px;text-align:center;cursor:pointer;color:#64748b;font-size:11px;letter-spacing:.05em;transition:border-color .15s;margin-bottom:6px;" onmouseover="this.style.borderColor='rgba(249,115,22,.8)'" onmouseout="this.style.borderColor='rgba(249,115,22,.4)'">
+          Нажмите или перетащите изображение (PNG, JPG, GIF, WebP · до 25 МБ)
+        </div>
+        <input id="news-media-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none;" onchange="onNewsMediaFile(this)">
+        <div id="news-media-preview" style="display:none;position:relative;width:fit-content;">
+          <img id="news-media-preview-img" src="" alt="" style="max-height:80px;max-width:100%;border:1px solid rgba(249,115,22,.3);">
+          <button onclick="removeNewsMedia()" style="position:absolute;top:-6px;right:-6px;background:#0f172a;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:11px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0;">✕</button>
+        </div>
+      </div>
     </div>
     <div style="display:flex;gap:8px;">
       <button onclick="document.getElementById('add-news-popup').style.display='none'" class="mfp-btn-cancel" style="flex:1;">ОТМЕНА</button>
       <button onclick="submitAdminNews()" class="mfp-btn-add" style="flex:2;">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         ОПУБЛИКОВАТЬ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit marker popup -->
+<div id="edit-mark-popup" style="display:none;position:fixed;inset:0;z-index:7500;background:rgba(2,6,23,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div style="width:420px;border:1px solid rgba(249,115,22,.4);background:rgba(15,23,42,.97);padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <span style="font-size:13px;font-weight:700;color:#f97316;letter-spacing:.08em;text-transform:uppercase;">Редактировать метку</span>
+      <button onclick="document.getElementById('edit-mark-popup').style.display='none'" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label class="mfp-label">Обозначение</label>
+      <input id="edit-mfp-name" class="mfp-input" type="text" maxlength="40" autocomplete="off">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label class="mfp-label">Приоритет</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <label class="mfp-prio" data-p="low"><input type="radio" name="edit-mfp-prio" value="low"> <span>Низкий</span></label>
+        <label class="mfp-prio" data-p="med"><input type="radio" name="edit-mfp-prio" value="med"> <span>Средний</span></label>
+        <label class="mfp-prio" data-p="high"><input type="radio" name="edit-mfp-prio" value="high"> <span>Высокий</span></label>
+        <label class="mfp-prio" data-p="crit"><input type="radio" name="edit-mfp-prio" value="crit"> <span>КРИТ</span></label>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label class="mfp-label">Информация</label>
+      <textarea id="edit-mfp-info" class="mfp-textarea" rows="3" placeholder="Доп. информация…"></textarea>
+    </div>
+    <input type="hidden" id="edit-mfp-mid">
+    <div style="display:flex;gap:8px;">
+      <button onclick="document.getElementById('edit-mark-popup').style.display='none'" class="mfp-btn-cancel" style="flex:1;">ОТМЕНА</button>
+      <button onclick="submitEditMark()" class="mfp-btn-add" style="flex:2;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        СОХРАНИТЬ
       </button>
     </div>
   </div>
@@ -2633,6 +2684,45 @@ function dismissNotif(id) {
 // News items stored in-memory (persisted via localStorage for demo)
 let adminNewsExtra = JSON.parse(localStorage.getItem('pulse_news_extra') || '[]');
 
+let _newsMediaFile = null;
+
+function toggleNewsMedia() {
+  const sec = document.getElementById('news-media-section');
+  const btn = document.getElementById('news-media-toggle');
+  if (sec.style.display === 'none') {
+    sec.style.display = 'block';
+    btn.textContent = '− Убрать медиа';
+  } else {
+    sec.style.display = 'none';
+    btn.textContent = '+ Добавить медиа';
+    removeNewsMedia();
+  }
+}
+
+function onNewsMediaFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 25 * 1024 * 1024) { alert('Файл слишком большой (макс. 25 МБ)'); input.value = ''; return; }
+  _newsMediaFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('news-media-preview');
+    const img  = document.getElementById('news-media-preview-img');
+    img.src = e.target.result;
+    prev.style.display = 'block';
+    document.getElementById('news-media-dropzone').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeNewsMedia() {
+  _newsMediaFile = null;
+  document.getElementById('news-media-file').value = '';
+  document.getElementById('news-media-preview').style.display = 'none';
+  document.getElementById('news-media-preview-img').src = '';
+  document.getElementById('news-media-dropzone').style.display = 'block';
+}
+
 function openAddNewsPopup() {
   const popup = document.getElementById('add-news-popup');
   popup.style.display = 'flex';
@@ -2640,18 +2730,37 @@ function openAddNewsPopup() {
   document.getElementById('news-excerpt-input').value = '';
   document.getElementById('news-body-input').value = '';
   document.getElementById('news-badge-input').value = '';
+  document.getElementById('news-media-section').style.display = 'none';
+  document.getElementById('news-media-toggle').textContent = '+ Добавить медиа';
+  removeNewsMedia();
 }
 
-function submitAdminNews() {
+async function submitAdminNews() {
   const title   = document.getElementById('news-title-input').value.trim();
   const excerpt = document.getElementById('news-excerpt-input').value.trim();
   const body    = document.getElementById('news-body-input').value.trim();
   const badge   = document.getElementById('news-badge-input').value.trim() || 'Новость';
   if (!title) { alert('Введите заголовок'); return; }
+
+  let mediaSrc = '';
+  let mediaType = 'none';
+  if (_newsMediaFile) {
+    try {
+      const fd = new FormData();
+      fd.append('file', _newsMediaFile);
+      const res = await fetch('/api/uploads', { method: 'POST', body: fd });
+      if (res.ok) {
+        const j = await res.json();
+        mediaSrc = j.url;
+        mediaType = 'image';
+      }
+    } catch (_) {}
+  }
+
   const now = new Date();
   const dateStr = now.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }) +
     ' · ' + now.toISOString().slice(11,16) + ' UTC';
-  const item = { id: Date.now(), badge, date: dateStr, title, excerpt: excerpt || title, body: body || excerpt, mediaType: 'none', mediaSrc: '', gallery: [] };
+  const item = { id: Date.now(), badge, date: dateStr, title, excerpt: excerpt || title, body: body || excerpt, mediaType, mediaSrc, gallery: [] };
   adminNewsExtra.unshift(item);
   localStorage.setItem('pulse_news_extra', JSON.stringify(adminNewsExtra));
   document.getElementById('add-news-popup').style.display = 'none';
@@ -3289,7 +3398,7 @@ function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, t
       const isVideo = /\.(mp4|webm|mov|mkv)$/i.test(u);
       return isVideo
         ? `<video src="${u}" style="width:60px;height:46px;object-fit:cover;border:1px solid rgba(249,115,22,.25);" muted></video>`
-        : `<img src="${u}" style="width:60px;height:46px;object-fit:cover;border:1px solid rgba(249,115,22,.25);">`;
+        : `<img src="${u}" style="width:60px;height:46px;object-fit:cover;border:1px solid rgba(249,115,22,.25);cursor:pointer;" onclick="openLightbox(this.src)">`;
     }).join('');
     attachHtml = `<div class="pop-row" style="border-top:1px solid #1e293b;padding-top:5px;margin-top:3px;flex-wrap:wrap;gap:3px;">${thumbs}</div>`;
   }
@@ -3314,6 +3423,7 @@ function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, t
         <div class="pop-btns">
           <button class="pop-btn pop-btn-red" onclick="destroyMarker('${mid}')">УНИЧТОЖЕНО</button>
           ${getRoleCan().changePriority ? `<button class="pop-btn pop-btn-prio" onclick="changeMarkerPriority('${mid}', this)">ПРИОРИТЕТ ↑</button>` : ''}
+          ${getRoleCan().changePriority ? `<button class="pop-btn" onclick="openEditMarkPopup('${mid}', '${name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}', '${prio}', '${info.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">РЕДАКТИРОВАТЬ</button>` : ''}
           <button class="pop-btn" onclick="map.closePopup()">СКРЫТЬ</button>
         </div>
       </div>
@@ -3338,6 +3448,48 @@ async function changeMarkerPriority(markerId, btn) {
       body: JSON.stringify({ priority: next }),
     });
     if (prioEl) { prioEl.dataset.prio = next; prioEl.textContent = prioLabels[next]; }
+  } catch (_) {}
+}
+
+function openEditMarkPopup(mid, name, prio, info) {
+  map.closePopup();
+  document.getElementById('edit-mfp-mid').value = mid;
+  document.getElementById('edit-mfp-name').value = name;
+  document.getElementById('edit-mfp-info').value = info === '—' ? '' : info;
+  const prioRadio = document.querySelector(`input[name="edit-mfp-prio"][value="${prio}"]`);
+  if (prioRadio) prioRadio.checked = true;
+  document.getElementById('edit-mark-popup').style.display = 'flex';
+}
+
+async function submitEditMark() {
+  const mid  = document.getElementById('edit-mfp-mid').value;
+  const name = document.getElementById('edit-mfp-name').value.trim() || 'Метка';
+  const prio = document.querySelector('input[name="edit-mfp-prio"]:checked')?.value || 'med';
+  const info = document.getElementById('edit-mfp-info').value.trim() || '—';
+  try {
+    await fetch('/api/markers/' + mid, {
+      method: 'PATCH',
+      headers: apiHeaders(),
+      body: JSON.stringify({ name, priority: prio, info }),
+    });
+  } catch (_) {}
+  document.getElementById('edit-mark-popup').style.display = 'none';
+  // Refresh marker on map
+  const token = localStorage.getItem('pulse_token');
+  try {
+    const res = await fetch('/api/markers', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
+    if (res.ok) {
+      const markers = await res.json();
+      const md = markers.find(x => String(x.id) === String(mid));
+      if (md && markerRefs[mid]) {
+        markerRefs[mid].remove();
+        delete markerRefs[mid];
+        const sk = formatSK42(md.lat, md.lng);
+        const ts = (md.created_at || '').replace('T',' ').slice(0,19) + ' UTC';
+        addMarkerToMap(String(md.id), md.lat, md.lng, md.name, md.color || '#f97316',
+          md.type || '—', md.priority || 'med', md.info || '—', sk, ts, md.attachments || []);
+      }
+    }
   } catch (_) {}
 }
 
@@ -4457,9 +4609,15 @@ function openArticleById(id, isAdmin) {
   if (isAdmin) {
     const n = (typeof adminNewsExtra !== 'undefined' ? adminNewsExtra : []).find(x => x.id === id);
     if (!n) return;
+    const heroHtml = n.mediaSrc
+      ? (n.mediaType === 'video'
+          ? `<iframe class="art-hero-video" src="${n.mediaSrc}" frameborder="0" allowfullscreen title="${n.title}"></iframe>`
+          : `<img class="art-hero" src="${n.mediaSrc}" alt="${n.title}">`)
+      : '';
     document.getElementById('news-modal-content').innerHTML = `
       <div class="art-title">${n.title}</div>
       <div class="art-meta"><span class="art-date">${n.date}</span><span class="art-badge">${n.badge}</span></div>
+      ${heroHtml}
       <div class="art-body">${(n.body || '').replace(/\n/g, '<br>')}</div>
     `;
   } else {
@@ -4600,6 +4758,7 @@ document.addEventListener('keydown', function(e) {
     if (document.getElementById('support-overlay').style.display === 'block') { closeSupport(); return; }
     if (document.getElementById('settings-overlay').style.display === 'block') { closeSettings(); return; }
     if (document.getElementById('add-news-popup').style.display === 'flex') { document.getElementById('add-news-popup').style.display='none'; return; }
+    if (document.getElementById('edit-mark-popup').style.display === 'flex') { document.getElementById('edit-mark-popup').style.display='none'; return; }
     if (document.getElementById('mark-popup').style.display === 'block') { cancelMark(); return; }
     if (document.getElementById('reb-popup').style.display === 'block') { cancelRebMark(); return; }
     if (document.getElementById('rer-popup').style.display === 'block') { cancelRerMark(); return; }
