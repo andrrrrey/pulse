@@ -2232,8 +2232,12 @@ nav { display: flex; gap: 2px; }
         <input id="reb-radius" class="mfp-input" type="number" value="150" min="10" max="5000" step="10">
       </div>
       <div class="mfp-field">
-        <label class="mfp-label">Время работы (часы)</label>
-        <input id="reb-worktime" class="mfp-input" type="number" value="2" min="0.5" max="24" step="0.5">
+        <label class="mfp-label">Диапазон работы</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input id="reb-time-from" class="mfp-input" type="time" style="flex:1;" title="Начало">
+          <span style="color:#475569;font-size:11px;">—</span>
+          <input id="reb-time-to" class="mfp-input" type="time" style="flex:1;" title="Окончание">
+        </div>
       </div>
       <div class="mfp-field">
         <label class="mfp-label">Глушимые частоты (МГц)</label>
@@ -2270,6 +2274,12 @@ nav { display: flex; gap: 2px; }
           </label>
           <label style="flex:1;display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #334155;cursor:pointer;font-size:11px;color:#64748b;white-space:nowrap;">
             <input type="radio" name="rer-type" value="fpv" style="accent-color:#ef4444;"> ФПВ-квадрокоптер
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #334155;cursor:pointer;font-size:11px;color:#64748b;white-space:nowrap;">
+            <input type="radio" name="rer-type" value="wing_recon" style="accent-color:#ef4444;"> Крыло: разведчик
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #334155;cursor:pointer;font-size:11px;color:#64748b;white-space:nowrap;">
+            <input type="radio" name="rer-type" value="wing_strike" style="accent-color:#ef4444;"> Крыло: ударник
           </label>
         </div>
       </div>
@@ -3226,7 +3236,7 @@ function wgs84toSK42(lat_deg, lon_deg) {
 function formatSK42(lat, lon) {
   const sk = wgs84toSK42(lat, lon);
   return {
-    str:  `X: ${sk.X.toLocaleString('ru')}  Y: ${sk.Y.toLocaleString('ru')}`,
+    str:  `X:${sk.X}  Y:${sk.Y}`,
     full: `X:${sk.X} · Y:${sk.Y} · Зона:${sk.zone}`,
     X: sk.X, Y: sk.Y, zone: sk.zone
   };
@@ -3319,6 +3329,7 @@ function deactivateAllMarkModes() {
 }
 
 function toggleMarkMode() {
+  if (!getRoleCan().markers) return;
   if (markMode) { deactivateAllMarkModes(); return; }
   deactivateAllMarkModes();
   markMode = true;
@@ -3383,6 +3394,20 @@ function openMarkPopup(latlng) {
   mfpClearFiles();
   mfpSetupDropzone();
 
+  // Пилот — только тип «Агро-дроны», без поля Информация и Фото/Видео
+  const role = currentUser?.role;
+  document.querySelectorAll('.mfp-type-btn').forEach(b => {
+    b.style.display = (role === 'pilot') ? (b.dataset.type === 'agro' ? '' : 'none') : '';
+  });
+  const infoField = document.getElementById('mfp-info')?.closest('.mfp-field');
+  const photoField = document.getElementById('mfp-dropzone')?.closest('.mfp-field');
+  if (infoField) infoField.style.display = (role === 'pilot') ? 'none' : '';
+  if (photoField) photoField.style.display = (role === 'pilot') ? 'none' : '';
+  if (role === 'pilot') {
+    const agroBtn = document.querySelector('.mfp-type-btn[data-type="agro"]');
+    if (agroBtn) selectMarkType(agroBtn);
+  }
+
   setTimeout(() => document.getElementById('mfp-name').focus(), 80);
 }
 
@@ -3422,8 +3447,8 @@ function addMarkerToMap(mid, lat, lng, name, color, typeLabel, prio, info, sk, t
         <div class="pop-row" style="border-top:1px solid #1e293b;padding-top:5px;margin-top:3px;">
           <span class="pop-lbl" style="color:#f97316;font-size:9px;letter-spacing:.07em;">СК-42</span>
         </div>
-        <div class="pop-row"><span class="pop-lbl">X (север):</span><span class="pop-val" style="font-weight:600;">${String(sk.X).replace(/\B(?=(\d{3})+(?!\d))/g,'\u202f')}</span></div>
-        <div class="pop-row"><span class="pop-lbl">Y (восток):</span><span class="pop-val" style="font-weight:600;">${String(sk.Y).replace(/\B(?=(\d{3})+(?!\d))/g,'\u202f')}</span></div>
+        <div class="pop-row"><span class="pop-lbl">X (север):</span><span class="pop-val" style="font-weight:600;">${sk.X}</span></div>
+        <div class="pop-row"><span class="pop-lbl">Y (восток):</span><span class="pop-val" style="font-weight:600;">${sk.Y}</span></div>
         <div class="pop-row"><span class="pop-lbl">Зона:</span><span class="pop-val">${sk.zone}</span></div>
         <div class="pop-row" style="border-top:1px solid #1e293b;padding-top:5px;margin-top:3px;">
           <span class="pop-lbl">Инфо:</span><span class="pop-val" style="max-width:130px;white-space:normal;text-align:right;">${info}</span>
@@ -3506,8 +3531,10 @@ async function submitEditMark() {
         const sk = formatSK42(md.lat, md.lng);
         const ts = (md.created_at || '').replace('T',' ').slice(0,19) + ' UTC';
         const typeLabel = TYPE_LABELS[md.type] || md.type || '—';
+        let editAttachUrls = [];
+        try { editAttachUrls = md.attachments ? JSON.parse(md.attachments) : []; } catch (_) {}
         const marker = addMarkerToMap(String(md.id), md.lat, md.lng, md.name, md.color || '#f97316',
-          typeLabel, md.priority || 'med', md.info || '—', sk, ts, md.attachments || []);
+          typeLabel, md.priority || 'med', md.info || '—', sk, ts, editAttachUrls);
         serverMarkerRefs[String(md.id)] = marker;
       }
     }
@@ -3516,6 +3543,7 @@ async function submitEditMark() {
 
 async function confirmMark() {
   if (!pendingMarkLatLng) return;
+  if (!getRoleCan().markers) return;
 
   const name      = document.getElementById('mfp-name').value.trim() || 'Метка';
   const info      = document.getElementById('mfp-info').value.trim() || '—';
@@ -3558,6 +3586,7 @@ async function confirmMark() {
         info: info === '—' ? '' : info,
         coords_x: sk.X, coords_y: sk.Y, zone: sk.zone,
         marker_role: 'standard',
+        attachments: attachUrls,
       }),
     });
     if (res.ok) {
@@ -3613,7 +3642,7 @@ function addRebDomeToMap(mid, lat, lng, name, radius, extra) {
     <div class="pop-title" style="color:#8b5cf6;">${name}</div>
     <div class="pop-row"><span class="pop-lbl">Тип:</span><span class="pop-val">${extra_data.reb_type === 'directional' ? 'Направленная' : 'Круговая'}</span></div>
     <div class="pop-row"><span class="pop-lbl">Радиус:</span><span class="pop-val">${r} м</span></div>
-    <div class="pop-row"><span class="pop-lbl">Работа:</span><span class="pop-val">${extra_data.worktime || '?'} ч</span></div>
+    <div class="pop-row"><span class="pop-lbl">Работа:</span><span class="pop-val">${extra_data.time_from || '?'}–${extra_data.time_to || '?'}</span></div>
     <div class="pop-row"><span class="pop-lbl">Частоты:</span><span class="pop-val">${extra_data.freqs || '—'}</span></div>
     <div class="pop-btns">
       <button class="pop-btn pop-btn-red" onclick="destroyServerMarker('${mid}')">ОТКЛЮЧИТЬ</button>
@@ -3669,7 +3698,8 @@ function addEnemyTargetToMap(mid, lat, lng, name, color, extra) {
   </svg>`;
   const icon = L.divIcon({ html: svgIcon, className: 'enemy-target-icon', iconSize:[24,24], iconAnchor:[12,12], popupAnchor:[0,-14] });
 
-  const typeLabel = extra_data.target_type === 'fpv' ? 'ФПВ-квадрокоптер' : 'Агро-дрон';
+  const TYPE_LABELS_ET = { agro: 'Агро-дрон', fpv: 'ФПВ-квадрокоптер', wing_recon: 'Крыло: разведчик', wing_strike: 'Крыло: ударник' };
+  const typeLabel = TYPE_LABELS_ET[extra_data.target_type] || 'Агро-дрон';
   const isStrike = !!extra_data.strike;
   const opacity = isStrike ? 0.6 : 1;
 
@@ -3754,8 +3784,10 @@ async function loadMarkersFromServer() {
 
       const sk = { X: m.coords_x, Y: m.coords_y, zone: m.zone };
       const typeLabel = TYPE_LABELS[m.type] || m.type || '—';
+      let attachUrls = [];
+      try { attachUrls = m.attachments ? JSON.parse(m.attachments) : []; } catch (_) {}
       const marker = addMarkerToMap(m.id, m.lat, m.lng, m.name, m.color || '#f97316',
-        typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', []);
+        typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', attachUrls);
       serverMarkerRefs[m.id] = marker;
     }
   } catch (_) {}
@@ -3778,10 +3810,11 @@ function openRebPopup(latlng) {
   const sk = formatSK42(latlng.lat, latlng.lng);
   document.getElementById('reb-coords-display').innerHTML =
     `<span style="color:#8b5cf6;letter-spacing:.02em;">СК&#8209;42</span>&nbsp;&nbsp;${sk.str}`;
-  document.getElementById('reb-name').value    = '';
-  document.getElementById('reb-radius').value  = '150';
-  document.getElementById('reb-worktime').value = '2';
-  document.getElementById('reb-freqs').value   = '';
+  document.getElementById('reb-name').value      = '';
+  document.getElementById('reb-radius').value    = '150';
+  document.getElementById('reb-time-from').value = '';
+  document.getElementById('reb-time-to').value   = '';
+  document.getElementById('reb-freqs').value     = '';
   document.querySelector('input[name="reb-type"][value="circle"]').checked = true;
 
   const popup = document.getElementById('reb-popup');
@@ -3811,16 +3844,17 @@ function cancelRebMark() {
 async function confirmRebMark() {
   if (!pendingRebLatLng) return;
   const latlng   = pendingRebLatLng;
-  const name     = document.getElementById('reb-name').value.trim() || 'РЭБ';
-  const rebType  = document.querySelector('input[name="reb-type"]:checked')?.value || 'circle';
-  const radius   = parseFloat(document.getElementById('reb-radius').value) || 150;
-  const worktime = parseFloat(document.getElementById('reb-worktime').value) || 2;
-  const freqs    = document.getElementById('reb-freqs').value.trim();
-  const sk       = formatSK42(latlng.lat, latlng.lng);
-  const ts       = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
+  const name      = document.getElementById('reb-name').value.trim() || 'РЭБ';
+  const rebType   = document.querySelector('input[name="reb-type"]:checked')?.value || 'circle';
+  const radius    = parseFloat(document.getElementById('reb-radius').value) || 150;
+  const timeFrom  = document.getElementById('reb-time-from').value || '';
+  const timeTo    = document.getElementById('reb-time-to').value || '';
+  const freqs     = document.getElementById('reb-freqs').value.trim();
+  const sk        = formatSK42(latlng.lat, latlng.lng);
+  const ts        = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
   cancelRebMark();
 
-  const extra = JSON.stringify({ reb_type: rebType, worktime, freqs });
+  const extra = JSON.stringify({ reb_type: rebType, time_from: timeFrom, time_to: timeTo, freqs });
 
   let markerId = 'local_reb_' + Date.now();
   try {
@@ -3830,7 +3864,7 @@ async function confirmRebMark() {
       body: JSON.stringify({
         lat: latlng.lat, lng: latlng.lng, name,
         type: 'reb_dome', color: '#8b5cf6', priority: 'high',
-        info: `Тип: ${rebType} · ${worktime}ч · ${freqs}`,
+        info: `Тип: ${rebType} · ${timeFrom}–${timeTo} · ${freqs}`,
         coords_x: sk.X, coords_y: sk.Y, zone: sk.zone,
         radius, extra, marker_role: 'reb_dome',
       }),
@@ -3907,7 +3941,8 @@ async function confirmRerMark() {
   const isStrike  = document.getElementById('rer-strike').checked;
   const sk        = formatSK42(latlng.lat, latlng.lng);
   const ts        = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
-  const typeLabel = targetType === 'fpv' ? 'ФПВ-квадрокоптер' : 'Агро-дрон';
+  const TYPE_LABELS_RER = { agro: 'Агро-дрон', fpv: 'ФПВ-квадрокоптер', wing_recon: 'Крыло: разведчик', wing_strike: 'Крыло: ударник' };
+  const typeLabel = TYPE_LABELS_RER[targetType] || 'Агро-дрон';
   const name      = (isStrike ? '⚡ УДАР · ' : '') + typeLabel;
   cancelRerMark();
 
@@ -4826,8 +4861,10 @@ setInterval(async function() {
         };
         const sk = { X: m.coords_x, Y: m.coords_y, zone: m.zone };
         const typeLabel = TYPE_LABELS[m.type] || m.type || '—';
+        let pollAttachUrls = [];
+        try { pollAttachUrls = m.attachments ? JSON.parse(m.attachments) : []; } catch (_) {}
         const marker = addMarkerToMap(m.id, m.lat, m.lng, m.name, m.color || '#f97316',
-          typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', []);
+          typeLabel, m.priority || 'med', m.info || '—', sk, m.created_at || '', pollAttachUrls);
         serverMarkerRefs[m.id] = marker;
       }
     }
