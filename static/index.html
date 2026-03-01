@@ -598,11 +598,12 @@ html, body { color: #dde4ee; }
 }
 .notif-close:hover { color: #f97316; }
 
-/* ── REB dome gradient overlay ──────────── */
+/* ── REB dome label ──────────── */
 .lf-reb-tip {
   background: transparent !important; border: none !important; box-shadow: none !important;
-  color: rgba(167,139,250,.85) !important; font-family: 'JetBrains Mono', monospace !important;
+  color: rgba(249,115,22,.9) !important; font-family: 'JetBrains Mono', monospace !important;
   font-size: 8px !important; letter-spacing: .05em !important;
+  text-shadow: 0 0 6px rgba(249,115,22,.5) !important;
 }
 
 /* ── Silence mode alert ──────────────────── */
@@ -796,7 +797,7 @@ html, body { color: #dde4ee; }
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;flex-shrink:0;"></span><span style="color:#475569;">Оборудование / Крыло</span></div>
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#06b6d4;display:inline-block;flex-shrink:0;"></span><span style="color:#475569;">Агро-дрон / Доставка</span></div>
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;display:inline-block;flex-shrink:0;"></span><span style="color:#475569;">РЭБ</span></div>
-            <div style="display:flex;align-items:center;gap:6px;"><span style="width:13px;height:13px;border-radius:50%;border:1px dashed rgba(139,92,246,.55);background:rgba(139,92,246,.08);display:inline-block;flex-shrink:0;"></span><span style="color:#475569;">Зона союзн. РЭБ</span></div>
+            <div style="display:flex;align-items:center;gap:6px;"><span style="width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(249,115,22,.65);background:rgba(249,115,22,.1);display:inline-block;flex-shrink:0;"></span><span style="color:#475569;">Зона союзн. РЭБ</span></div>
           </div>
           <!-- Ruler info label -->
           <div id="ruler-label" style="display:none;position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(2,6,23,.92);border:1px solid rgba(249,115,22,.4);padding:4px 12px;font-size:12px;color:#f97316;letter-spacing:.07em;white-space:nowrap;"></div>
@@ -2960,6 +2961,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.p
 
 /* ── Type-specific icon paths (24x24 viewBox) ──────── */
 const MARKER_ICON_PATHS = {
+  pos:       '<circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="12" y1="2" x2="12" y2="7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16.5" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="2" y1="12" x2="7.5" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16.5" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   tech:      '<rect x="2" y="10" width="20" height="6" rx="1" fill="currentColor" opacity=".9"/><path d="M5 10V8h3v2M11 10V8h3v2" stroke="rgba(0,0,0,.5)" stroke-width="1" fill="none"/><circle cx="7" cy="16" r="2.2" fill="rgba(0,0,0,.4)"/><circle cx="17" cy="16" r="2.2" fill="rgba(0,0,0,.4)"/><rect x="2" y="11" width="20" height="1" fill="rgba(0,0,0,.2)"/>',
   infantry:  '<circle cx="12" cy="6" r="3" fill="currentColor" opacity=".9"/><path d="M8 21v-4a4 4 0 0 1 8 0v4" fill="currentColor" opacity=".85"/><path d="M5 11l-1 4M19 11l1 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   reb:       '<path d="M4.5 19.5C.5 15.5.5 8.5 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M7.5 16.5c-2-2-2-6 0-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M16.5 7.5c2 2 2 6 0 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M19.5 4.5c4 4 4 11 0 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>',
@@ -2971,18 +2973,23 @@ const MARKER_ICON_PATHS = {
 
 /* ── Custom SVG marker factory ─────────────────── */
 function makeIcon(color, type) {
-  const innerPath = MARKER_ICON_PATHS[type] || `<circle cx="11" cy="11" r="5" fill="${color}" opacity=".95"/>`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
-    <circle cx="14" cy="14" r="12" fill="${color}" opacity=".18"/>
-    <circle cx="14" cy="14" r="11" fill="none" stroke="${color}" stroke-width="1.5" opacity=".7"/>
-    <g transform="translate(2,2)" style="color:${color}">${innerPath}</g>
+  const innerPath = MARKER_ICON_PATHS[type] || `<circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
+    <!-- Dark background for contrast against satellite imagery -->
+    <circle cx="17" cy="17" r="15" fill="rgba(4,8,18,0.82)"/>
+    <!-- White outer ring for visibility on any terrain -->
+    <circle cx="17" cy="17" r="15" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+    <!-- Color ring identifying the marker type -->
+    <circle cx="17" cy="17" r="12.5" fill="none" stroke="${color}" stroke-width="2" opacity=".9"/>
+    <!-- Type icon centered inside -->
+    <g transform="translate(5,5)" style="color:${color}">${innerPath}</g>
   </svg>`;
   return L.divIcon({
-    html: `<div style="filter:drop-shadow(0 0 4px ${color})">${svg}</div>`,
+    html: `<div style="filter:drop-shadow(0 0 5px ${color}) drop-shadow(0 2px 6px rgba(0,0,0,0.9))">${svg}</div>`,
     className: '',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -16]
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+    popupAnchor: [0, -19]
   });
 }
 
@@ -3042,15 +3049,15 @@ function popupHtml(d, markerId) {
 
 /* ── Target markers data ───────────────────────── */
 const TARGETS = {
-  pos1:  { lat:48.502, lng:37.504, color:'#ef4444', type:'ПОЗИЦИЯ',   sub:'Огневая точка',      coords:'X:6412540 · Y:2306120', t:'12:31 UTC', info:'Замечено движение' },
-  tech1: { lat:48.499, lng:37.508, color:'#f59e0b', type:'ТЕХНИКА',   sub:'БТР / колёсная',     coords:'X:6412740 · Y:2306210', t:'12:38 UTC', info:'Движется на СЗ'   },
-  reb1:  { lat:48.497, lng:37.501, color:'#8b5cf6', type:'РЭБ',       sub:'Станция подавления', coords:'X:6412880 · Y:2306340', t:'12:19 UTC', info:'Частоты: 5.8 ГГц' },
-  agro1: { lat:48.504, lng:37.510, color:'#06b6d4', type:'АГРО-ДРОН', sub:'Гексакоптер',        coords:'X:6412660 · Y:2305970', t:'12:44 UTC', info:'Высота ~40м'      }
+  pos1:  { lat:48.502, lng:37.504, color:'#ef4444', typeKey:'pos',  type:'ПОЗИЦИЯ',   sub:'Огневая точка',      coords:'X:6412540 · Y:2306120', t:'12:31 UTC', info:'Замечено движение' },
+  tech1: { lat:48.499, lng:37.508, color:'#f59e0b', typeKey:'tech', type:'ТЕХНИКА',   sub:'БТР / колёсная',     coords:'X:6412740 · Y:2306210', t:'12:38 UTC', info:'Движется на СЗ'   },
+  reb1:  { lat:48.497, lng:37.501, color:'#8b5cf6', typeKey:'reb',  type:'РЭБ',       sub:'Станция подавления', coords:'X:6412880 · Y:2306340', t:'12:19 UTC', info:'Частоты: 5.8 ГГц' },
+  agro1: { lat:48.504, lng:37.510, color:'#06b6d4', typeKey:'agro', type:'АГРО-ДРОН', sub:'Гексакоптер',        coords:'X:6412660 · Y:2305970', t:'12:44 UTC', info:'Высота ~40м'      }
 };
 
 const markerRefs = {};
 Object.entries(TARGETS).forEach(([id, d]) => {
-  const m = L.marker([d.lat, d.lng], { icon: makeIcon(d.color) })
+  const m = L.marker([d.lat, d.lng], { icon: makeIcon(d.color, d.typeKey) })
     .addTo(map)
     .bindPopup(popupHtml(d, id), {
       className: 'lf-popup',
@@ -3144,115 +3151,65 @@ function destroyMarker(id) {
 }
 
 /* ── REB Radar Animation Engine ────────────────────────────
-   Creates an animated rotating radar sweep on a canvas element
-   positioned over the Leaflet map container.
+   Uses native Leaflet SVG vector layers (L.circle + L.polyline)
+   instead of a canvas overlay. This means the animation is
+   managed by Leaflet itself and stays perfectly in sync during
+   zoom, pan, and smooth map animations — no lag, no drift.
 ─────────────────────────────────────────────────────────── */
-const _rebRadarState = {}; // id → { running, canvas, update }
+const _rebRadarState = {}; // id → { running, ring, arm }
 
 function createRebRadarAnimation(id, lat, lng, radiusMeters) {
-  // Remove existing animation for this id
+  // Stop and clean up any existing animation for this id
   if (_rebRadarState[id]) {
     _rebRadarState[id].running = false;
-    if (_rebRadarState[id].canvas) _rebRadarState[id].canvas.remove();
-    map.off('zoomend moveend', _rebRadarState[id].update);
+    _rebRadarState[id].ring.remove();
+    _rebRadarState[id].arm.remove();
     delete _rebRadarState[id];
   }
 
-  const canvas = document.createElement('canvas');
-  canvas.className = 'reb-radar-canvas';
-  // Append to map-overlay so it moves with the map's coordinate space
-  const overlay = document.getElementById('map-overlay') || map.getContainer();
-  overlay.appendChild(canvas);
+  // Orange outer ring — a native Leaflet circle, always in sync with the map
+  const ring = L.circle([lat, lng], {
+    radius: radiusMeters,
+    color: '#f97316',
+    weight: 1.5,
+    opacity: 0.75,
+    fill: true,
+    fillColor: '#f97316',
+    fillOpacity: 0.07,
+    interactive: false,
+  }).addTo(map);
+
+  // Rotating scan arm — a Leaflet polyline from center to rim
+  const arm = L.polyline([[lat, lng], computeOffsetLatLng(lat, lng, radiusMeters, 0)], {
+    color: '#f97316',
+    weight: 2.5,
+    opacity: 0.9,
+    interactive: false,
+  }).addTo(map);
 
   let angle = 0;
-  const state = { running: true, canvas };
+  let lastTs = null;
+  const state = { running: true, ring, arm };
+  _rebRadarState[id] = state;
 
-  function getGeom() {
-    const mapC = map.getContainer();
-    const rect  = mapC.getBoundingClientRect();
-    const overlayRect = overlay.getBoundingClientRect();
-    const centerPt = map.latLngToContainerPoint([lat, lng]);
-    const edgePt   = map.latLngToContainerPoint(computeOffsetLatLng(lat, lng, radiusMeters, 90));
-    const r = Math.abs(edgePt.x - centerPt.x);
-    return { cx: centerPt.x, cy: centerPt.y, r };
-  }
-
-  function updateCanvasPosition() {
-    const { cx, cy, r } = getGeom();
-    const pad = 2;
-    const size = Math.max(r * 2 + pad * 2, 10);
-    canvas.width  = size;
-    canvas.height = size;
-    canvas.style.left = (cx - r - pad) + 'px';
-    canvas.style.top  = (cy - r - pad) + 'px';
-    canvas.style.width  = size + 'px';
-    canvas.style.height = size + 'px';
-  }
-  state.update = updateCanvasPosition;
-  map.on('zoomend moveend', updateCanvasPosition);
-  updateCanvasPosition();
-
-  function draw() {
+  function frame(ts) {
     if (!state.running) return;
-    const { r } = getGeom();
-    const pad = 2;
-    const cx  = r + pad;
-    const cy  = r + pad;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (r < 2) { requestAnimationFrame(draw); return; }
-
-    // Outer ring
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(139,92,246,0.55)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Sweep glow sector (45° trailing sector)
-    const trailAngle = Math.PI / 4;
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    grad.addColorStop(0,   'rgba(139,92,246,0.0)');
-    grad.addColorStop(0.3, 'rgba(139,92,246,0.06)');
-    grad.addColorStop(1,   'rgba(139,92,246,0.14)');
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, r, angle - trailAngle, angle);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // Sweep arm line with glow
-    const ex = cx + Math.cos(angle) * r;
-    const ey = cy + Math.sin(angle) * r;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(ex, ey);
-    ctx.strokeStyle = 'rgba(167,139,250,0.95)';
-    ctx.lineWidth = 1.8;
-    ctx.shadowColor = 'rgba(139,92,246,0.7)';
-    ctx.shadowBlur  = 6;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Center dot
-    ctx.beginPath();
-    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(167,139,250,0.9)';
-    ctx.fill();
-
-    angle += 0.018; // ~3 seconds per revolution
-    if (angle > Math.PI * 2) angle -= Math.PI * 2;
-    requestAnimationFrame(draw);
+    if (lastTs !== null) {
+      const dt = (ts - lastTs) / 1000;
+      angle = (angle + 45 * dt) % 360; // 45°/sec → ~8 sec per revolution
+    }
+    lastTs = ts;
+    // Recompute arm endpoint in lat/lng — Leaflet handles the pixel projection
+    arm.setLatLngs([[lat, lng], computeOffsetLatLng(lat, lng, radiusMeters, angle)]);
+    requestAnimationFrame(frame);
   }
-  draw();
+  requestAnimationFrame(frame);
 
   return {
     remove() {
       state.running = false;
-      canvas.remove();
-      map.off('zoomend moveend', updateCanvasPosition);
+      ring.remove();
+      arm.remove();
       delete _rebRadarState[id];
     }
   };
@@ -3590,20 +3547,23 @@ function formatSK42(lat, lon) {
 /* ── Иконка маркера (type-aware pin) ──────────────────── */
 function makeCustomMarkerIcon(color, type) {
   const innerPath = MARKER_ICON_PATHS[type] || `<circle cx="12" cy="12" r="5" fill="white" opacity=".9"/>`;
-  // Pin shape 28x34, icon embedded in pin head (cx=14,cy=13,r=10)
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="34" viewBox="0 0 28 34">
-    <ellipse cx="14" cy="32" rx="5" ry="2.2" fill="rgba(0,0,0,.35)"/>
-    <path d="M14 0C9.1 0 5 4 5 9.5c0 7.5 9 22.5 9 22.5s9-15 9-22.5C23 4 18.9 0 14 0z" fill="${color}" opacity=".95"/>
-    <path d="M14 0C9.1 0 5 4 5 9.5c0 7.5 9 22.5 9 22.5s9-15 9-22.5C23 4 18.9 0 14 0z" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"/>
-    <circle cx="14" cy="9.5" r="8" fill="rgba(0,0,0,.35)"/>
-    <g transform="translate(2.5,0) scale(0.8,0.8)" style="color:white;opacity:.95">${innerPath}</g>
+  // Pin shape 30x37, icon embedded in pin head
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="37" viewBox="0 0 30 37">
+    <ellipse cx="15" cy="35" rx="5.5" ry="2" fill="rgba(0,0,0,.4)"/>
+    <!-- Outer white stroke for terrain contrast -->
+    <path d="M15 0C9.9 0 5.5 4.2 5.5 10c0 8 9.5 24 9.5 24s9.5-16 9.5-24C24.5 4.2 20.1 0 15 0z" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.8"/>
+    <!-- Colored fill -->
+    <path d="M15 0C9.9 0 5.5 4.2 5.5 10c0 8 9.5 24 9.5 24s9.5-16 9.5-24C24.5 4.2 20.1 0 15 0z" fill="${color}" opacity=".95"/>
+    <!-- Dark icon background circle -->
+    <circle cx="15" cy="10" r="8.5" fill="rgba(4,8,18,0.45)"/>
+    <g transform="translate(3,0) scale(0.8,0.8)" style="color:white;opacity:.95">${innerPath}</g>
   </svg>`;
   return L.divIcon({
-    html: `<div style="filter:drop-shadow(0 0 5px ${color})">${svg}</div>`,
+    html: `<div style="filter:drop-shadow(0 0 5px ${color}) drop-shadow(0 2px 5px rgba(0,0,0,0.8))">${svg}</div>`,
     className: '',
-    iconSize: [28, 34],
-    iconAnchor: [14, 34],
-    popupAnchor: [0, -36]
+    iconSize: [30, 37],
+    iconAnchor: [15, 37],
+    popupAnchor: [0, -39]
   });
 }
 
@@ -4003,20 +3963,33 @@ function addRebDomeToMap(mid, lat, lng, name, radius, extra) {
   try { extra_data = JSON.parse(extra || '{}'); } catch (_) {}
   const r = parseFloat(radius) || 150;
 
-  // Invisible Leaflet circle (used for tooltip anchor only; animation is on canvas)
+  // Invisible Leaflet circle — tooltip anchor only, non-interactive so clicks
+  // pass through to any markers that may be inside the REB dome zone.
   const circle = L.circle([lat, lng], {
     radius: r,
-    color: '#8b5cf6',
-    weight: 1,
+    color: 'transparent',
+    weight: 0,
     opacity: 0,
     fillOpacity: 0,
+    interactive: false,
   }).addTo(map);
-  circle._rebName = name; // store for destroyServerMarker
 
   const tipText = `${name} · R=${r}м` + (extra_data.freqs ? ` · ${extra_data.freqs}` : '');
   circle.bindTooltip(tipText, { permanent: true, direction: 'top', className: 'lf-reb-tip', offset: [0, -10] });
-  circle.bindPopup(`<div class="pop-inner" style="min-width:200px;">
-    <div class="pop-title" style="color:#a78bfa;">${name}</div>
+
+  // Draggable handle at east edge for radius resize (only reb and admin can drag)
+  // The popup is on the handle so clicking it doesn't block inner markers.
+  const canChangeRadius = getRoleCan().rebDome;
+  let currentR = r;
+  const edgeLatLng = computeOffsetLatLng(lat, lng, r, 90);
+  const handleCursor = canChangeRadius ? 'ew-resize' : 'default';
+  const handleIcon = L.divIcon({
+    html: `<div style="width:12px;height:12px;border-radius:50%;background:#f97316;border:2px solid #fff;box-shadow:0 0 6px rgba(249,115,22,.7);cursor:${handleCursor};"></div>`,
+    className: '', iconSize: [12,12], iconAnchor: [6,6]
+  });
+  const handle = L.marker(edgeLatLng, { icon: handleIcon, draggable: canChangeRadius, title: canChangeRadius ? 'Перетащите для изменения радиуса' : '' }).addTo(map);
+  handle.bindPopup(`<div class="pop-inner" style="min-width:200px;">
+    <div class="pop-title" style="color:#f97316;">${name}</div>
     <div class="pop-row"><span class="pop-lbl">Тип:</span><span class="pop-val">${extra_data.reb_type === 'directional' ? 'Направленная' : 'Круговая'}</span></div>
     <div class="pop-row"><span class="pop-lbl">Радиус:</span><span class="pop-val">${r} м</span></div>
     <div class="pop-row"><span class="pop-lbl">Работа:</span><span class="pop-val">${extra_data.time_from || '?'}–${extra_data.time_to || '?'}</span></div>
@@ -4026,17 +3999,6 @@ function addRebDomeToMap(mid, lat, lng, name, radius, extra) {
       <button class="pop-btn" onclick="map.closePopup()">СКРЫТЬ</button>
     </div>
   </div>`, { className: 'lf-popup', closeButton: true, maxWidth: 260 });
-
-  // Draggable handle at east edge for radius resize (only reb and admin can drag)
-  const canChangeRadius = getRoleCan().rebDome;
-  let currentR = r;
-  const edgeLatLng = computeOffsetLatLng(lat, lng, r, 90);
-  const handleCursor = canChangeRadius ? 'ew-resize' : 'default';
-  const handleIcon = L.divIcon({
-    html: `<div style="width:12px;height:12px;border-radius:50%;background:#8b5cf6;border:2px solid #fff;box-shadow:0 0 6px rgba(139,92,246,.7);cursor:${handleCursor};"></div>`,
-    className: '', iconSize: [12,12], iconAnchor: [6,6]
-  });
-  const handle = L.marker(edgeLatLng, { icon: handleIcon, draggable: canChangeRadius, title: canChangeRadius ? 'Перетащите для изменения радиуса' : '' }).addTo(map);
 
   if (canChangeRadius) {
     handle.on('drag', function(e) {
