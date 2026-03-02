@@ -1,11 +1,12 @@
 import os
 import uuid
+import json
 import secrets
 import sqlite3
 from datetime import datetime, timedelta
 
 import aiofiles
-from fastapi import FastAPI, UploadFile, File, HTTPException, Header
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 
 from database import init_db, get_conn, hash_password
@@ -496,6 +497,90 @@ def add_killfeed(data: dict):
 # ─────────────────────────────────────────────
 #  STREAMS
 # ─────────────────────────────────────────────
+
+# In-memory WebRTC signaling state (per-process, lost on restart — intentional)
+_pilot_ws: dict = {}    # stream_id → WebSocket
+_viewer_ws: dict = {}   # (stream_id, viewer_id) → WebSocket
+
+
+@app.websocket("/ws/streams")
+async def streams_signaling(websocket: WebSocket):
+    await websocket.accept()
+    role = None
+    stream_id = None
+    viewer_id = None
+    try:
+        async for raw in websocket.iter_text():
+            try:
+                msg = json.loads(raw)
+            except Exception:
+                continue
+            t = msg.get("type")
+
+            if t == "pilot-register":
+                stream_id = msg.get("streamId")
+                role = "pilot"
+                if stream_id:
+                    _pilot_ws[stream_id] = websocket
+
+            elif t == "viewer-join":
+                stream_id = msg.get("streamId")
+                viewer_id = msg.get("viewerId")
+                role = "viewer"
+                if stream_id and viewer_id:
+                    _viewer_ws[(stream_id, viewer_id)] = websocket
+                    pilot = _pilot_ws.get(stream_id)
+                    if pilot:
+                        await pilot.send_text(json.dumps({
+                            "type": "join-request",
+                            "streamId": stream_id,
+                            "viewerId": viewer_id,
+                        }))
+
+            elif t == "offer":
+                target = _viewer_ws.get((msg.get("streamId"), msg.get("viewerId")))
+                if target:
+                    await target.send_text(raw)
+
+            elif t == "answer":
+                target = _pilot_ws.get(msg.get("streamId"))
+                if target:
+                    await target.send_text(raw)
+
+            elif t == "ice-pilot":
+                target = _viewer_ws.get((msg.get("streamId"), msg.get("viewerId")))
+                if target:
+                    await target.send_text(raw)
+
+            elif t == "ice-viewer":
+                target = _pilot_ws.get(msg.get("streamId"))
+                if target:
+                    await target.send_text(raw)
+
+            elif t == "stream-ended":
+                sid = msg.get("streamId")
+                for (s, _v), ws in list(_viewer_ws.items()):
+                    if s == sid:
+                        try:
+                            await ws.send_text(raw)
+                        except Exception:
+                            pass
+
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        if role == "pilot" and stream_id:
+            _pilot_ws.pop(stream_id, None)
+            # Remove orphaned stream record if pilot disconnected without calling DELETE
+            try:
+                with get_conn() as db:
+                    db.execute("DELETE FROM streams WHERE id=?", (stream_id,))
+            except Exception:
+                pass
+        elif role == "viewer" and stream_id and viewer_id:
+            _viewer_ws.pop((stream_id, viewer_id), None)
 
 @app.get("/api/streams")
 def get_streams():
