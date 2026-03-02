@@ -1071,7 +1071,7 @@ html, body { color: #dde4ee; }
 </div>
 
 <!-- ══════════ STREAMS OVERLAY ══════════ -->
-<div id="streams-overlay" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(2,6,23,0.93);backdrop-filter:blur(6px);overflow-y:auto;">
+<div id="streams-overlay" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(2,6,23,0.97);overflow-y:auto;">
   <div style="max-width:1000px;margin:40px auto;padding:0 16px 60px;">
 
     <!-- Header -->
@@ -1095,7 +1095,7 @@ html, body { color: #dde4ee; }
         <span style="font-size:11px;color:#f97316;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">● Ваша трансляция</span>
         <button onclick="stopStream()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);color:#ef4444;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 12px;letter-spacing:.06em;text-transform:uppercase;" onmouseover="this.style.background='rgba(239,68,68,.22)'" onmouseout="this.style.background='rgba(239,68,68,.1)'">■ Завершить</button>
       </div>
-      <video id="my-stream-video" autoplay muted playsinline style="width:100%;max-height:320px;object-fit:contain;background:#000;display:block;"></video>
+      <video id="my-stream-video" autoplay muted playsinline style="width:100%;max-height:320px;object-fit:contain;background:#000;display:block;filter:none;"></video>
     </div>
 
     <!-- Viewer panel -->
@@ -1105,7 +1105,7 @@ html, body { color: #dde4ee; }
         <button onclick="stopWatching()" style="background:none;border:1px solid #334155;color:#64748b;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 12px;letter-spacing:.06em;text-transform:uppercase;" onmouseover="this.style.borderColor='rgba(249,115,22,.5)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#334155';this.style.color='#64748b'">✕ Отключиться</button>
       </div>
       <div id="watch-connecting" style="text-align:center;padding:32px;color:#475569;font-size:12px;letter-spacing:.06em;">Подключение к трансляции...</div>
-      <video id="watch-video" autoplay playsinline style="width:100%;max-height:480px;object-fit:contain;background:#000;display:none;"></video>
+      <video id="watch-video" autoplay playsinline style="width:100%;max-height:480px;object-fit:contain;background:#000;display:none;filter:none;"></video>
     </div>
 
     <!-- Streams list -->
@@ -5621,8 +5621,23 @@ function openStreams() {
     if (el.textContent.trim() === 'Трансляции') el.classList.add('active');
   });
   initStreamsBC();
+
+  // Восстановить состояние UI по текущей сессии
+  if (myStreamId && myMediaStream) {
+    const vid = document.getElementById('my-stream-video');
+    if (vid && !vid.srcObject) vid.srcObject = myMediaStream;
+    document.getElementById('my-stream-panel').style.display = 'block';
+    document.getElementById('btn-start-stream').style.display = 'none';
+    document.getElementById('streams-live-badge').style.display = '';
+  } else {
+    document.getElementById('my-stream-panel').style.display = 'none';
+    document.getElementById('btn-start-stream').style.display = '';
+    document.getElementById('streams-live-badge').style.display = 'none';
+  }
+  document.getElementById('watch-panel').style.display = viewerStreamId ? 'block' : 'none';
+
   refreshStreamsList();
-  streamsRefreshTimer = setInterval(refreshStreamsList, 5000);
+  if (!streamsRefreshTimer) streamsRefreshTimer = setInterval(refreshStreamsList, 5000);
 }
 
 function closeStreams() {
