@@ -5363,12 +5363,13 @@ setInterval(async function() {
 checkStoredAuth();
 
 // ═══════════════════════════════════════════════════════
-//  STREAMS — WebRTC + BroadcastChannel signaling
-//  Работает локально между вкладками одного браузера
-//  без серверной сигнализации (BroadcastChannel API).
+//  STREAMS — WebRTC + WebSocket signaling
+//  Сигнализация через сервер — работает между любыми
+//  браузерами на одном ПК и в одной сети.
 // ═══════════════════════════════════════════════════════
 
-let streamsBC = null;
+let streamsWS = null;
+let wsQueue = [];         // сообщения до открытия соединения
 let myStreamId = null;
 let myMediaStream = null;
 let pilotPCs = {};        // {viewerId: RTCPeerConnection}
@@ -5377,13 +5378,30 @@ let viewerStreamId = null;
 let viewerId = null;
 let streamsRefreshTimer = null;
 
-function initStreamsBC() {
-  if (streamsBC) return;
-  streamsBC = new BroadcastChannel('pulse_webrtc');
-  streamsBC.onmessage = ({ data }) => handleBCMessage(data);
+function initStreamsWS() {
+  if (streamsWS && (streamsWS.readyState === WebSocket.OPEN || streamsWS.readyState === WebSocket.CONNECTING)) return;
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  streamsWS = new WebSocket(`${proto}//${location.host}/ws/streams`);
+  streamsWS.onopen = () => {
+    wsQueue.forEach(m => streamsWS.send(m));
+    wsQueue = [];
+  };
+  streamsWS.onmessage = ({ data }) => { try { handleWSMessage(JSON.parse(data)); } catch (_) {} };
+  streamsWS.onclose = () => { streamsWS = null; };
+  streamsWS.onerror = () => {};
 }
 
-async function handleBCMessage(msg) {
+function sendWS(msg) {
+  const raw = JSON.stringify(msg);
+  if (streamsWS && streamsWS.readyState === WebSocket.OPEN) {
+    streamsWS.send(raw);
+  } else {
+    wsQueue.push(raw);
+    initStreamsWS();
+  }
+}
+
+async function handleWSMessage(msg) {
   try {
     // Pilot: viewer wants to watch
     if (msg.type === 'join-request' && msg.streamId === myStreamId) {
@@ -5454,7 +5472,7 @@ async function startStream() {
     return;
   }
   myMediaStream = stream;
-  initStreamsBC();
+  initStreamsWS();
 
   let res;
   try {
@@ -5482,6 +5500,7 @@ async function startStream() {
   hideStreamError();
   const j = await res.json();
   myStreamId = j.id;
+  sendWS({ type: 'pilot-register', streamId: myStreamId });
 
   document.getElementById('my-stream-video').srcObject = myMediaStream;
   document.getElementById('my-stream-panel').style.display = 'block';
@@ -5503,13 +5522,13 @@ async function sendOfferToViewer(vid) {
 
   pc.onicecandidate = ({ candidate }) => {
     if (candidate) {
-      streamsBC.postMessage({ type: 'ice-pilot', streamId: myStreamId, viewerId: vid, candidate: candidate.toJSON() });
+      sendWS({ type: 'ice-pilot', streamId: myStreamId, viewerId: vid, candidate: candidate.toJSON() });
     }
   };
 
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
-  streamsBC.postMessage({ type: 'offer', streamId: myStreamId, viewerId: vid, sdp: offer.sdp });
+  sendWS({ type: 'offer', streamId: myStreamId, viewerId: vid, sdp: offer.sdp });
 }
 
 async function handleReceivedOffer(sdp) {
@@ -5525,19 +5544,19 @@ async function handleReceivedOffer(sdp) {
 
   viewerPC.onicecandidate = ({ candidate }) => {
     if (candidate) {
-      streamsBC.postMessage({ type: 'ice-viewer', streamId: viewerStreamId, viewerId, candidate: candidate.toJSON() });
+      sendWS({ type: 'ice-viewer', streamId: viewerStreamId, viewerId, candidate: candidate.toJSON() });
     }
   };
 
   await viewerPC.setRemoteDescription({ type: 'offer', sdp });
   const answer = await viewerPC.createAnswer();
   await viewerPC.setLocalDescription(answer);
-  streamsBC.postMessage({ type: 'answer', streamId: viewerStreamId, viewerId, sdp: answer.sdp });
+  sendWS({ type: 'answer', streamId: viewerStreamId, viewerId, sdp: answer.sdp });
 }
 
 async function watchStream(streamId, callsign) {
   if (viewerStreamId) stopWatching(true);
-  initStreamsBC();
+  initStreamsWS();
   if (!viewerId) viewerId = crypto.randomUUID();
   viewerStreamId = streamId;
 
@@ -5550,7 +5569,7 @@ async function watchStream(streamId, callsign) {
   document.getElementById('watch-connecting').style.display = 'block';
   document.getElementById('watch-panel').style.display = 'block';
 
-  streamsBC.postMessage({ type: 'join-request', streamId, viewerId });
+  sendWS({ type: 'viewer-join', streamId, viewerId });
 }
 
 function stopWatching(silent) {
@@ -5565,7 +5584,7 @@ function stopWatching(silent) {
 
 async function stopStream() {
   if (!myStreamId) return;
-  if (streamsBC) streamsBC.postMessage({ type: 'stream-ended', streamId: myStreamId });
+  sendWS({ type: 'stream-ended', streamId: myStreamId });
   Object.values(pilotPCs).forEach(pc => pc.close());
   pilotPCs = {};
   if (myMediaStream) { myMediaStream.getTracks().forEach(t => t.stop()); myMediaStream = null; }
@@ -5620,7 +5639,7 @@ function openStreams() {
   document.querySelectorAll('.nav-item').forEach(el => {
     if (el.textContent.trim() === 'Трансляции') el.classList.add('active');
   });
-  initStreamsBC();
+  initStreamsWS();
 
   // Восстановить состояние UI по текущей сессии
   if (myStreamId && myMediaStream) {
