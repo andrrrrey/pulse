@@ -494,6 +494,39 @@ def add_killfeed(data: dict):
 
 
 # ─────────────────────────────────────────────
+#  STREAMS
+# ─────────────────────────────────────────────
+
+@app.get("/api/streams")
+def get_streams():
+    with get_conn() as db:
+        rows = db.execute("SELECT * FROM streams ORDER BY started_at DESC").fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/streams")
+def create_stream(data: dict, authorization: str | None = Header(None)):
+    user = require_auth(authorization)
+    sid = str(uuid.uuid4())[:8]
+    now = datetime.utcnow().isoformat(timespec="seconds")
+    callsign = user.get("callsign") or user["username"]
+    with get_conn() as db:
+        db.execute(
+            "INSERT INTO streams (id, callsign, title, started_at) VALUES (?,?,?,?)",
+            (sid, callsign, data.get("title", ""), now),
+        )
+    return {"id": sid, "started_at": now}
+
+
+@app.delete("/api/streams/{stream_id}")
+def delete_stream(stream_id: str, authorization: str | None = Header(None)):
+    require_auth(authorization)
+    with get_conn() as db:
+        db.execute("DELETE FROM streams WHERE id=?", (stream_id,))
+    return {"ok": True}
+
+
+# ─────────────────────────────────────────────
 #  STATIC FILES  (должны быть ПОСЛЕ всех /api/...)
 # ─────────────────────────────────────────────
 

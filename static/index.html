@@ -719,7 +719,7 @@ html, body { color: #dde4ee; }
     <!-- Nav -->
     <nav>
       <div class="nav-item active">Боевой хаб</div>
-      <div class="nav-item">Трансляции</div>
+      <div class="nav-item" onclick="openStreams()">Трансляции</div>
       <div class="nav-item" onclick="openSettings()">Настройки</div>
       <div class="nav-item" onclick="openNews()">Новости</div>
       <div class="nav-item" onclick="openSupport()">Техподдержка</div>
@@ -1065,6 +1065,52 @@ html, body { color: #dde4ee; }
       <span style="font-size:10px;color:#38bdf8;">▲ Доставка ×1</span>
       <span style="font-size:10px;color:#94a3b8;">Позиция: ФПВ ×1 / крыло ×2.5</span>
       <span style="font-size:10px;color:#ef4444;">⚠ Канал без очереди −5</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ STREAMS OVERLAY ══════════ -->
+<div id="streams-overlay" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(2,6,23,0.93);backdrop-filter:blur(6px);overflow-y:auto;">
+  <div style="max-width:1000px;margin:40px auto;padding:0 16px 60px;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:3px;height:22px;background:#f97316;"></div>
+        <span style="font-size:15px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase;">Трансляции</span>
+        <span id="streams-live-badge" style="display:none;font-size:9px;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.4);padding:2px 7px;letter-spacing:.1em;margin-left:6px;">● LIVE</span>
+        <span style="font-size:9px;color:#334155;letter-spacing:.1em;margin-left:4px;">// ЗАХВАТ ОКНА</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="btn-start-stream" onclick="startStream()" style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.5);color:#f97316;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.background='rgba(249,115,22,.22)'" onmouseout="this.style.background='rgba(249,115,22,.1)'">▶ Начать трансляцию</button>
+        <button onclick="closeStreams()" style="background:none;border:1px solid #334155;color:#64748b;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.borderColor='rgba(249,115,22,.5)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#334155';this.style.color='#64748b'">✕ Закрыть</button>
+      </div>
+    </div>
+
+    <!-- My stream preview (pilot) -->
+    <div id="my-stream-panel" style="display:none;margin-bottom:24px;background:rgba(15,23,42,.8);border:1px solid rgba(249,115,22,.3);padding:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:11px;color:#f97316;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">● Ваша трансляция</span>
+        <button onclick="stopStream()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.4);color:#ef4444;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 12px;letter-spacing:.06em;text-transform:uppercase;" onmouseover="this.style.background='rgba(239,68,68,.22)'" onmouseout="this.style.background='rgba(239,68,68,.1)'">■ Завершить</button>
+      </div>
+      <video id="my-stream-video" autoplay muted playsinline style="width:100%;max-height:320px;object-fit:contain;background:#000;display:block;"></video>
+    </div>
+
+    <!-- Viewer panel -->
+    <div id="watch-panel" style="display:none;margin-bottom:24px;background:rgba(15,23,42,.8);border:1px solid rgba(99,102,241,.3);padding:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span id="watch-panel-title" style="font-size:11px;color:#818cf8;letter-spacing:.08em;text-transform:uppercase;font-weight:600;">● Просмотр трансляции</span>
+        <button onclick="stopWatching()" style="background:none;border:1px solid #334155;color:#64748b;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 12px;letter-spacing:.06em;text-transform:uppercase;" onmouseover="this.style.borderColor='rgba(249,115,22,.5)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#334155';this.style.color='#64748b'">✕ Отключиться</button>
+      </div>
+      <div id="watch-connecting" style="text-align:center;padding:32px;color:#475569;font-size:12px;letter-spacing:.06em;">Подключение к трансляции...</div>
+      <video id="watch-video" autoplay playsinline style="width:100%;max-height:480px;object-fit:contain;background:#000;display:none;"></video>
+    </div>
+
+    <!-- Streams list -->
+    <div style="font-size:10px;color:#334155;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;">Активные трансляции</div>
+    <div id="streams-list">
+      <div style="text-align:center;padding:40px;color:#334155;font-size:12px;letter-spacing:.06em;">Нет активных трансляций</div>
     </div>
 
   </div>
@@ -5314,6 +5360,232 @@ setInterval(async function() {
 
 // Check for stored auth on page load
 checkStoredAuth();
+
+// ═══════════════════════════════════════════════════════
+//  STREAMS — WebRTC + BroadcastChannel signaling
+//  Работает локально между вкладками одного браузера
+//  без серверной сигнализации (BroadcastChannel API).
+// ═══════════════════════════════════════════════════════
+
+let streamsBC = null;
+let myStreamId = null;
+let myMediaStream = null;
+let pilotPCs = {};        // {viewerId: RTCPeerConnection}
+let viewerPC = null;
+let viewerStreamId = null;
+let viewerId = null;
+let streamsRefreshTimer = null;
+
+function initStreamsBC() {
+  if (streamsBC) return;
+  streamsBC = new BroadcastChannel('pulse_webrtc');
+  streamsBC.onmessage = ({ data }) => handleBCMessage(data);
+}
+
+async function handleBCMessage(msg) {
+  try {
+    // Pilot: viewer wants to watch
+    if (msg.type === 'join-request' && msg.streamId === myStreamId) {
+      await sendOfferToViewer(msg.viewerId);
+      return;
+    }
+    // Viewer: pilot sent offer
+    if (msg.type === 'offer' && msg.viewerId === viewerId && msg.streamId === viewerStreamId) {
+      await handleReceivedOffer(msg.sdp);
+      return;
+    }
+    // Pilot: viewer sent answer
+    if (msg.type === 'answer' && msg.streamId === myStreamId && pilotPCs[msg.viewerId]) {
+      await pilotPCs[msg.viewerId].setRemoteDescription({ type: 'answer', sdp: msg.sdp });
+      return;
+    }
+    // ICE from viewer to pilot
+    if (msg.type === 'ice-viewer' && msg.streamId === myStreamId && pilotPCs[msg.viewerId]) {
+      await pilotPCs[msg.viewerId].addIceCandidate(msg.candidate);
+      return;
+    }
+    // ICE from pilot to viewer
+    if (msg.type === 'ice-pilot' && msg.viewerId === viewerId && viewerPC) {
+      await viewerPC.addIceCandidate(msg.candidate);
+      return;
+    }
+    // Pilot ended the stream
+    if (msg.type === 'stream-ended' && msg.streamId === viewerStreamId) {
+      stopWatching(true);
+      return;
+    }
+  } catch (_) {}
+}
+
+async function startStream() {
+  if (myStreamId) return;
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+  } catch (_) {
+    return; // user cancelled or permission denied
+  }
+  myMediaStream = stream;
+  initStreamsBC();
+
+  const res = await fetch('/api/streams', {
+    method: 'POST',
+    headers: apiHeaders(),
+    body: JSON.stringify({ title: (currentUser?.callsign || currentUser?.username || '') + ' — трансляция' }),
+  });
+  if (!res.ok) { stream.getTracks().forEach(t => t.stop()); return; }
+  const j = await res.json();
+  myStreamId = j.id;
+
+  document.getElementById('my-stream-video').srcObject = myMediaStream;
+  document.getElementById('my-stream-panel').style.display = 'block';
+  document.getElementById('btn-start-stream').style.display = 'none';
+  document.getElementById('streams-live-badge').style.display = '';
+
+  // Stop stream if user closes OS share dialog
+  myMediaStream.getVideoTracks()[0].onended = () => stopStream();
+
+  refreshStreamsList();
+}
+
+async function sendOfferToViewer(vid) {
+  if (pilotPCs[vid]) { pilotPCs[vid].close(); }
+  const pc = new RTCPeerConnection();
+  pilotPCs[vid] = pc;
+
+  myMediaStream.getTracks().forEach(t => pc.addTrack(t, myMediaStream));
+
+  pc.onicecandidate = ({ candidate }) => {
+    if (candidate) {
+      streamsBC.postMessage({ type: 'ice-pilot', streamId: myStreamId, viewerId: vid, candidate });
+    }
+  };
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  streamsBC.postMessage({ type: 'offer', streamId: myStreamId, viewerId: vid, sdp: offer.sdp });
+}
+
+async function handleReceivedOffer(sdp) {
+  if (viewerPC) { viewerPC.close(); }
+  viewerPC = new RTCPeerConnection();
+
+  viewerPC.ontrack = ({ streams }) => {
+    const vid = document.getElementById('watch-video');
+    vid.srcObject = streams[0];
+    vid.style.display = 'block';
+    document.getElementById('watch-connecting').style.display = 'none';
+  };
+
+  viewerPC.onicecandidate = ({ candidate }) => {
+    if (candidate) {
+      streamsBC.postMessage({ type: 'ice-viewer', streamId: viewerStreamId, viewerId, candidate });
+    }
+  };
+
+  await viewerPC.setRemoteDescription({ type: 'offer', sdp });
+  const answer = await viewerPC.createAnswer();
+  await viewerPC.setLocalDescription(answer);
+  streamsBC.postMessage({ type: 'answer', streamId: viewerStreamId, viewerId, sdp: answer.sdp });
+}
+
+async function watchStream(streamId, callsign) {
+  if (viewerStreamId) stopWatching(true);
+  initStreamsBC();
+  if (!viewerId) viewerId = crypto.randomUUID();
+  viewerStreamId = streamId;
+
+  const titleEl = document.getElementById('watch-panel-title');
+  if (titleEl) titleEl.textContent = '● Трансляция: ' + (callsign || streamId);
+
+  const watchVid = document.getElementById('watch-video');
+  watchVid.srcObject = null;
+  watchVid.style.display = 'none';
+  document.getElementById('watch-connecting').style.display = 'block';
+  document.getElementById('watch-panel').style.display = 'block';
+
+  streamsBC.postMessage({ type: 'join-request', streamId, viewerId });
+}
+
+function stopWatching(silent) {
+  if (viewerPC) { viewerPC.close(); viewerPC = null; }
+  viewerStreamId = null;
+  const watchVid = document.getElementById('watch-video');
+  if (watchVid) { watchVid.srcObject = null; watchVid.style.display = 'none'; }
+  const wp = document.getElementById('watch-panel');
+  if (wp) wp.style.display = 'none';
+  if (!silent) refreshStreamsList();
+}
+
+async function stopStream() {
+  if (!myStreamId) return;
+  if (streamsBC) streamsBC.postMessage({ type: 'stream-ended', streamId: myStreamId });
+  Object.values(pilotPCs).forEach(pc => pc.close());
+  pilotPCs = {};
+  if (myMediaStream) { myMediaStream.getTracks().forEach(t => t.stop()); myMediaStream = null; }
+  try { await fetch('/api/streams/' + myStreamId, { method: 'DELETE', headers: apiHeaders() }); } catch (_) {}
+  myStreamId = null;
+
+  const myVid = document.getElementById('my-stream-video');
+  if (myVid) myVid.srcObject = null;
+  const mp = document.getElementById('my-stream-panel');
+  if (mp) mp.style.display = 'none';
+  const btn = document.getElementById('btn-start-stream');
+  if (btn) btn.style.display = '';
+  const badge = document.getElementById('streams-live-badge');
+  if (badge) badge.style.display = 'none';
+  refreshStreamsList();
+}
+
+async function refreshStreamsList() {
+  try {
+    const res = await fetch('/api/streams');
+    if (!res.ok) return;
+    const streams = await res.json();
+    const el = document.getElementById('streams-list');
+    if (!el) return;
+
+    if (streams.length === 0) {
+      el.innerHTML = '<div style="text-align:center;padding:40px;color:#334155;font-size:12px;letter-spacing:.06em;">Нет активных трансляций</div>';
+      return;
+    }
+
+    el.innerHTML = streams.map(s => {
+      const cs = (s.callsign || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const ts = (s.started_at || '').slice(11, 16);
+      const isMine = s.id === myStreamId;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(15,23,42,.6);border:1px solid ${isMine ? 'rgba(249,115,22,.3)' : 'rgba(30,41,59,.8)'};margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="color:#ef4444;font-size:10px;animation:pulse 1.5s infinite;">●</span>
+          <span style="color:#e2e8f0;font-size:13px;font-weight:600;">${cs}</span>
+          ${isMine ? '<span style="font-size:9px;color:#f97316;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);padding:1px 6px;">ВЫ</span>' : ''}
+          <span style="color:#475569;font-size:10px;">${ts}</span>
+        </div>
+        ${isMine ? '' : `<button onclick="watchStream('${s.id}','${cs}')" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.4);color:#818cf8;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.background='rgba(99,102,241,.22)'" onmouseout="this.style.background='rgba(99,102,241,.1)'">▶ Смотреть</button>`}
+      </div>`;
+    }).join('');
+  } catch (_) {}
+}
+
+function openStreams() {
+  document.getElementById('streams-overlay').style.display = 'block';
+  document.getElementById('streams-overlay').scrollTop = 0;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => {
+    if (el.textContent.trim() === 'Трансляции') el.classList.add('active');
+  });
+  initStreamsBC();
+  refreshStreamsList();
+  streamsRefreshTimer = setInterval(refreshStreamsList, 5000);
+}
+
+function closeStreams() {
+  document.getElementById('streams-overlay').style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector('.nav-item').classList.add('active');
+  clearInterval(streamsRefreshTimer);
+  streamsRefreshTimer = null;
+}
 </script>
 </body>
 </html>

@@ -118,6 +118,13 @@ def init_db():
                 created_at TEXT NOT NULL,
                 expires_at TEXT DEFAULT ''
             );
+
+            CREATE TABLE IF NOT EXISTS streams (
+                id         TEXT PRIMARY KEY,
+                callsign   TEXT NOT NULL,
+                title      TEXT DEFAULT '',
+                started_at TEXT NOT NULL
+            );
         """)
 
         # Migrate markers table — add new columns if missing
