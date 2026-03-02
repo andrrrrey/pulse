@@ -5503,7 +5503,7 @@ async function sendOfferToViewer(vid) {
 
   pc.onicecandidate = ({ candidate }) => {
     if (candidate) {
-      streamsBC.postMessage({ type: 'ice-pilot', streamId: myStreamId, viewerId: vid, candidate });
+      streamsBC.postMessage({ type: 'ice-pilot', streamId: myStreamId, viewerId: vid, candidate: candidate.toJSON() });
     }
   };
 
@@ -5525,7 +5525,7 @@ async function handleReceivedOffer(sdp) {
 
   viewerPC.onicecandidate = ({ candidate }) => {
     if (candidate) {
-      streamsBC.postMessage({ type: 'ice-viewer', streamId: viewerStreamId, viewerId, candidate });
+      streamsBC.postMessage({ type: 'ice-viewer', streamId: viewerStreamId, viewerId, candidate: candidate.toJSON() });
     }
   };
 
