@@ -1082,8 +1082,9 @@ html, body { color: #dde4ee; }
         <span id="streams-live-badge" style="display:none;font-size:9px;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.4);padding:2px 7px;letter-spacing:.1em;margin-left:6px;">● LIVE</span>
         <span style="font-size:9px;color:#334155;letter-spacing:.1em;margin-left:4px;">// ЗАХВАТ ОКНА</span>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <button id="btn-start-stream" onclick="startStream()" style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.5);color:#f97316;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.background='rgba(249,115,22,.22)'" onmouseout="this.style.background='rgba(249,115,22,.1)'">▶ Начать трансляцию</button>
+        <span id="stream-error-msg" style="display:none;font-size:11px;color:#ef4444;letter-spacing:.04em;max-width:340px;line-height:1.4;"></span>
         <button onclick="closeStreams()" style="background:none;border:1px solid #334155;color:#64748b;cursor:pointer;font-family:inherit;font-size:12px;padding:5px 14px;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;" onmouseover="this.style.borderColor='rgba(249,115,22,.5)';this.style.color='#f97316'" onmouseout="this.style.borderColor='#334155';this.style.color='#64748b'">✕ Закрыть</button>
       </div>
     </div>
@@ -5417,23 +5418,68 @@ async function handleBCMessage(msg) {
   } catch (_) {}
 }
 
+function showStreamError(msg) {
+  const el = document.getElementById('stream-error-msg');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideStreamError() {
+  const el = document.getElementById('stream-error-msg');
+  if (el) el.style.display = 'none';
+}
+
 async function startStream() {
   if (myStreamId) return;
+  hideStreamError();
+
+  if (!authToken) {
+    showStreamError('Необходима авторизация — войдите в аккаунт.');
+    return;
+  }
+
+  if (!navigator.mediaDevices?.getDisplayMedia) {
+    showStreamError('Захват экрана недоступен. Откройте приложение через HTTPS или localhost.');
+    return;
+  }
+
   let stream;
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-  } catch (_) {
-    return; // user cancelled or permission denied
+  } catch (err) {
+    // NotAllowedError / AbortError — пользователь отменил, не показываем ошибку
+    if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+      showStreamError('Ошибка захвата экрана: ' + (err.message || err.name));
+    }
+    return;
   }
   myMediaStream = stream;
   initStreamsBC();
 
-  const res = await fetch('/api/streams', {
-    method: 'POST',
-    headers: apiHeaders(),
-    body: JSON.stringify({ title: (currentUser?.callsign || currentUser?.username || '') + ' — трансляция' }),
-  });
-  if (!res.ok) { stream.getTracks().forEach(t => t.stop()); return; }
+  let res;
+  try {
+    res = await fetch('/api/streams', {
+      method: 'POST',
+      headers: apiHeaders(),
+      body: JSON.stringify({ title: (currentUser?.callsign || currentUser?.username || '') + ' — трансляция' }),
+    });
+  } catch (err) {
+    stream.getTracks().forEach(t => t.stop());
+    myMediaStream = null;
+    showStreamError('Нет связи с сервером.');
+    return;
+  }
+
+  if (!res.ok) {
+    stream.getTracks().forEach(t => t.stop());
+    myMediaStream = null;
+    showStreamError(res.status === 401
+      ? 'Сессия истекла — войдите в аккаунт заново.'
+      : 'Ошибка сервера (' + res.status + ').');
+    return;
+  }
+
+  hideStreamError();
   const j = await res.json();
   myStreamId = j.id;
 
